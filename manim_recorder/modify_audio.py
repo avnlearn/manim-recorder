@@ -2,7 +2,7 @@ import os
 import sox
 import uuid
 from mutagen.mp3 import MP3
-from mutagen.mp4 import MP4
+from pydub.utils import mediainfo
 import wave
 
 from pathlib import Path
@@ -32,8 +32,8 @@ def get_duration(path : str) -> float:
             audio = MP3(path)
             return audio.info.length
         case '.m4a':
-            audio = MP4(path)
-            return audio.info.length
+            audio = mediainfo(path)
+            return float(info['duration'])
         case '.wav':
             with wave.open(str(path), "rb") as wav_file:
                 return wav_file.getnframes() / wav_file.getframerate()
