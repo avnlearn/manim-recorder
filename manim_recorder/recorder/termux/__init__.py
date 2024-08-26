@@ -65,11 +65,12 @@ class RecorderService(SpeechService):
             return cached_result
 
         if path is None:
-            audio_path = self.get_audio_basename(input_data) + ".mp3"
+            now = datetime.datetime.now()
+            audio_path = f"Voice_{now.strftime('%d%m%Y_%H%M%S')}.m4a"
         else:
             audio_path = path
 
-        # self.recorder._trigger_set_device()
+        
         box = msg_box("Voiceover:\n\n" + text)
         self.recorder.record(str(Path(cache_dir) / audio_path), box)
         json_dict = {
