@@ -84,6 +84,9 @@ class RecorderScene(Scene):
                 subcaption_buff=subcaption_buff,
                 max_subcaption_len=max_subcaption_len,
             )
+        # Increment voice_id after adding a new voiceover
+        self.voice_id += 1
+
         return tracker
 
     def add_wrapped_subcaption(
