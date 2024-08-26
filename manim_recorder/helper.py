@@ -98,6 +98,7 @@ def trim_silence(
     return trimmed_sound
 
 
+
 def append_to_json_file(json_file: str, data: dict, voice_id: int = -1, **kwargs):
     """Append data to json file"""
     # This cache.json file is not exist and Create cache.json file and append
