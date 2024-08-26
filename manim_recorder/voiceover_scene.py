@@ -148,7 +148,6 @@ class RecorderScene(Scene):
             return
 
         self.safe_wait(self.current_tracker.get_remaining_duration())
-        self.voice_id += 1
 
     def safe_wait(self, duration: float) -> None:
         """Waits for a given duration. If the duration is less than one frame, it waits for one frame.
