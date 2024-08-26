@@ -17,7 +17,7 @@ class RecorderScene(Scene):
     current_tracker: Optional[VoiceoverTracker]
     create_subcaption: bool
     create_script: bool
-    voice_id: int = -1
+    voice_id: int = 0
 
     def set_speech_service(
         self,
@@ -62,14 +62,15 @@ class RecorderScene(Scene):
             raise Exception(
                 "You need to call init_voiceover() before adding a voiceover."
             )
-        self.voice_id += 1
+
         dict_ = self.speech_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs)
-        tracker = VoiceoverTracker(self, dict_, self.speech_service.cache_dir)
-        
+        tracker = VoiceoverTracker(
+            self, dict_, self.speech_service.cache_dir, self.voice_id)
+
         self.add_sound(
             str(Path(self.speech_service.cache_dir) / dict_["final_audio"]))
-        
+
         self.current_tracker = tracker
 
         if self.create_subcaption:
@@ -83,7 +84,6 @@ class RecorderScene(Scene):
                 subcaption_buff=subcaption_buff,
                 max_subcaption_len=max_subcaption_len,
             )
-
         return tracker
 
     def add_wrapped_subcaption(
@@ -146,6 +146,7 @@ class RecorderScene(Scene):
             return
 
         self.safe_wait(self.current_tracker.get_remaining_duration())
+        self.voice_id += 1
 
     def safe_wait(self, duration: float) -> None:
         """Waits for a given duration. If the duration is less than one frame, it waits for one frame.
@@ -180,3 +181,4 @@ class RecorderScene(Scene):
                 yield self.add_voiceover_ssml(ssml, **kwargs)
         finally:
             self.wait_for_voiceover()
+            

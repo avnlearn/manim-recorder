@@ -21,13 +21,11 @@ def adjust_speed(input_path: str, output_path: str, tempo: float) -> None:
         os.rename(output_path, input_path)
 
 
-
 def get_duration(path: str) -> float:
-    # print(path)
+    
     with wave.open(str(path), "rb") as wav_file:
-        duration = wav_file.getnframes() / wav_file.getframerate()
-        print("Wav : ", duration)
-        return duration
+        return wav_file.getnframes() / wav_file.getframerate()
+
     # with wave.open(str(path), 'rb') as wav_file:
     #     frames = wav_file.getnframes()  # Total number of frames
     #     rate = wav_file.getframerate()  # Frame rate (samples per second)

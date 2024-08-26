@@ -10,7 +10,7 @@ AUDIO_OFFSET_RESOLUTION = 10_000_000
 class VoiceoverTracker:
     """Class to track the progress of a voiceover in a scene."""
 
-    def __init__(self, scene: Scene, data: dict, cache_dir: str):
+    def __init__(self, scene: Scene, data: dict, cache_dir: str, voice_id:int):
         """Initializes a VoiceoverTracker object.
 
         Args:
@@ -20,6 +20,7 @@ class VoiceoverTracker:
         self.scene = scene
         self.data = data
         self.cache_dir = cache_dir
+        self.voice_id = voice_id
         self.duration = get_duration(
             Path(cache_dir) / self.data["final_audio"])
         last_t = scene.renderer.time

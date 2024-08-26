@@ -98,6 +98,27 @@ def trim_silence(
     return trimmed_sound
 
 
+# def append_to_json_cache(json_file: str, data: dict):
+#     """Append data to json file"""
+#     # This cache.json file is not exist and Create cache.json file and append
+#     if not os.path.exists(json_file):
+#         with open(json_file, "w") as f:
+#             json.dump([data], f, indent=2)
+#         return
+
+#     # This cache.json file is exist and load
+#     with open(json_file, "r") as f:
+#         json_data = json.load(f)
+
+#     # Check cache.json file is list
+#     if not isinstance(json_data, list):
+#         raise ValueError("JSON file should be a list")
+#     json_data.append(data)
+
+#     with open(json_file, "w") as f:
+#         json.dump(json_data, f, indent=2, ensure_ascii=False)
+#     return
+
 
 def append_to_json_file(json_file: str, data: dict, voice_id: int = -1, **kwargs):
     """Append data to json file"""

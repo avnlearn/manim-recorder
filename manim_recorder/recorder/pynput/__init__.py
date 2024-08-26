@@ -69,14 +69,14 @@ class RecorderService(SpeechService):
             }
         }
         cached_result = self.get_cached_result(input_data, cache_dir, **kwargs)
-
+        
         if cached_result is not None:
             return cached_result
 
         if path is None:
             now = datetime.datetime.now()
             audio_path = f"Voice_{now.strftime('%d%m%Y_%H%M%S')}.wav"
-            # audio_path = f"Voice_{now.strftime('%d%m%Y_%H%M%S')}.mp3"
+    
         else:
             audio_path = path
 
@@ -86,7 +86,7 @@ class RecorderService(SpeechService):
 
         json_dict = {
             "input_data": input_data,
-            "original_audio": audio_path,
+            "original_audio": audio_path
         }
 
         return json_dict
