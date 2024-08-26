@@ -84,8 +84,7 @@ class RecorderScene(Scene):
                 subcaption_buff=subcaption_buff,
                 max_subcaption_len=max_subcaption_len,
             )
-        # Increment voice_id after adding a new voiceover
-        self.voice_id += 1
+
 
         return tracker
 
@@ -179,8 +178,12 @@ class RecorderScene(Scene):
 
         try:
             if text is not None:
+                # Increment voice_id after adding a new voiceover
+                self.voice_id += 1
                 yield self.add_voiceover_text(text, **kwargs)
             elif ssml is not None:
+                # Increment voice_id after adding a new voiceover
+                self.voice_id += 1
                 yield self.add_voiceover_ssml(ssml, **kwargs)
         finally:
             self.wait_for_voiceover()
