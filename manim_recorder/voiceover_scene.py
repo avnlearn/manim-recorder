@@ -17,7 +17,7 @@ class RecorderScene(Scene):
     current_tracker: Optional[VoiceoverTracker]
     create_subcaption: bool
     create_script: bool
-    voice_id: int = 0
+    voice_id: int = -1
 
     def set_speech_service(
         self,
