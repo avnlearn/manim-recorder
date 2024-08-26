@@ -4,17 +4,10 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "manim_recorder"
-authors = [{name = "AvN Learn", email = "avnlearn@gmail.com"}]
+authors = [{ name = "AvN Learn", email = "avnlearn@gmail.com" }]
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 requires-python = ">=3.5"
-dependencies = [
-    "manim",
-    "sox",
-    "pydub",
-    "mutagen",
-]
-[project.optional-dependencies]
-all = ["pyaudio"]
+dependencies = ["manim", "sox", "pydub", "mutagen", "pyaudio"]

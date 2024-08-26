@@ -4,3 +4,5 @@ media
 media/
 __pycache__
 __pycache__/
+dist/
+dist
