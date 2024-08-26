@@ -90,12 +90,6 @@ class Recorder:
                 input("Press any key to end recording....")
                 self.termux_mic_stop()
                 print("Finished recording, saving to", path)
-                trim_silence(
-                    AudioSegment.from_file(path),
-                    silence_threshold=self.trim_silence_threshold,
-                    buffer_start=self.trim_buffer_start,
-                    buffer_end=self.trim_buffer_end,
-                ).export(path, format="m4a")
                 self.first_call = False
                 logger.info(f"Saved {path}")
         except KeyboardInterrupt:
