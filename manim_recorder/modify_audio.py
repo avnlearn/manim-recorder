@@ -33,7 +33,7 @@ def get_duration(path : str) -> float:
             return audio.info.length
         case '.m4a':
             audio = mediainfo(path)
-            return float(info['duration'])
+            return float(audio['duration'])
         case '.wav':
             with wave.open(str(path), "rb") as wav_file:
                 return wav_file.getnframes() / wav_file.getframerate()
