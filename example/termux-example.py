@@ -1,7 +1,5 @@
 from manim import *
-# from manim_recorder import VoiceoverScene
 from manim_recorder import RecorderScene
-# from manim_recorder.services.recorder import RecorderService
 from manim_recorder.recorder.termux import RecorderService
 from pathlib import Path
 
