@@ -65,8 +65,6 @@ class Recorder:
 
     def _record(self, path):
         self.frames = []
-        m4a_path = Path(path).with_suffix(".m4a")
-
         print("Press and hold the 'r' key to begin recording")
         if self.first_call:
             print("Wait for 1 second, then start speaking.")
@@ -83,7 +81,7 @@ class Recorder:
             key = input("Stream active: ")[-1].lower()
             if key == "r":
                 self.termux_mic_rec(
-                    str(m4a_path),
+                    str(path),
                     channel_count=self.channel_count,
                     sampling_rate=self.sampling_rate,
                     encoder=self.encoder,
@@ -97,12 +95,8 @@ class Recorder:
                     silence_threshold=self.trim_silence_threshold,
                     buffer_start=self.trim_buffer_start,
                     buffer_end=self.trim_buffer_end,
-                ).export(path, format="mp3")
+                ).export(path, format="m4a")
                 self.first_call = False
-
-                if m4a_path.exists():
-                    # Remove the .wav file
-                    os.remove(m4a_path)
                 logger.info(f"Saved {path}")
         except KeyboardInterrupt:
             print("KeyboardInterrupt")
