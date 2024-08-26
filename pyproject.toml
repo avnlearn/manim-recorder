@@ -17,7 +17,5 @@ dependencies = [
     "mutagen",
 ]
 [project.optional-dependencies]
-system = [
-    "pyaudio"
-]
 termux = [""]
+all = ["pyaudio"]
