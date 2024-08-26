@@ -85,7 +85,6 @@ class RecorderService(SpeechService):
         self.recorder.record(str(Path(cache_dir) / audio_path), box)
 
         json_dict = {
-            "input_text": text,
             "input_data": input_data,
             "original_audio": audio_path,
         }

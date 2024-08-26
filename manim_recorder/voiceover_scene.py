@@ -17,7 +17,7 @@ class RecorderScene(Scene):
     current_tracker: Optional[VoiceoverTracker]
     create_subcaption: bool
     create_script: bool
-    voice_key: int = -1
+    voice_id: int = -1
 
     def set_speech_service(
         self,
@@ -62,13 +62,14 @@ class RecorderScene(Scene):
             raise Exception(
                 "You need to call init_voiceover() before adding a voiceover."
             )
-        print(self.voice_key)
+        self.voice_id += 1
         dict_ = self.speech_service._wrap_generate_from_text(
-            text=text, voice_id=self.voice_key, **kwargs)
+            text=text, voice_id=self.voice_id, **kwargs)
         tracker = VoiceoverTracker(self, dict_, self.speech_service.cache_dir)
+        
         self.add_sound(
             str(Path(self.speech_service.cache_dir) / dict_["final_audio"]))
-
+        
         self.current_tracker = tracker
 
         if self.create_subcaption:
@@ -174,7 +175,6 @@ class RecorderScene(Scene):
 
         try:
             if text is not None:
-                self.voice_key += 1
                 yield self.add_voiceover_text(text, **kwargs)
             elif ssml is not None:
                 yield self.add_voiceover_ssml(ssml, **kwargs)

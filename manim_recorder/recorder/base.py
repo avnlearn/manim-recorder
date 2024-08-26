@@ -73,7 +73,7 @@ class SpeechService(ABC):
             dict_["final_audio"] = dict_["original_audio"]
 
         append_to_json_file(
-            Path(self.cache_dir) / DEFAULT_VOICEOVER_CACHE_JSON_FILENAME, dict_
+            Path(self.cache_dir) / DEFAULT_VOICEOVER_CACHE_JSON_FILENAME, dict_, **kwargs
         )
 
         return dict_
@@ -100,9 +100,11 @@ class SpeechService(ABC):
 
         if os.path.exists(json_path):
             json_data = json.load(open(json_path, "r"))
-            if voice_id > -1:
+            if voice_id > -1 and 0 <= voice_id < len(json_data):
                 if json_data[voice_id]["input_data"] == input_data:
                     return json_data[voice_id]
+            else:
+                return None
 
             for entry in json_data:
                 if entry["input_data"] == input_data:
