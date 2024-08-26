@@ -7,7 +7,7 @@ import subprocess
 from pathlib import Path
 from manim import logger
 
-from manim_onvoice.helper import trim_silence
+from manim_recorder.helper import trim_silence
 
 from pydub import AudioSegment
 

@@ -1,6 +1,6 @@
 from pathlib import Path
 from manim_recorder.helper import msg_box
-from manim_recorder.services.base import SpeechService
+from manim_recorder.recorder.base import SpeechService
 from manim import logger
 from manim_recorder.recorder.termux.cli import Recorder
 
