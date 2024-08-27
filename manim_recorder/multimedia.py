@@ -7,6 +7,7 @@ def Check_OS():
     os_name = platform.system()
     match os_name:
         case "Linux":
+            # Check for Termux by looking for the presence of the 'termux' directory
             if os.path.exists('/data/data/com.termux'):
             # if 'TERMUX_VERSION' in os.environ:
                 return "Termux (Android)"
