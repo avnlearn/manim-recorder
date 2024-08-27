@@ -1,6 +1,6 @@
 from pathlib import Path
 from manim_recorder.helper import msg_box
-import datetime
+
 from manim_recorder.recorder.base import SpeechService
 from manim import logger
 
@@ -55,6 +55,7 @@ class RecorderService(SpeechService):
         self, text: str, cache_dir: str = None, path: str = None, **kwargs
     ) -> dict:
         """"""
+        print(kwargs)
         if cache_dir is None:
             cache_dir = self.cache_dir
 
@@ -69,16 +70,11 @@ class RecorderService(SpeechService):
             }
         }
         cached_result = self.get_cached_result(input_data, cache_dir, **kwargs)
-        
+
         if cached_result is not None:
             return cached_result
 
-        if path is None:
-            now = datetime.datetime.now()
-            audio_path = f"Voice_{now.strftime('%d%m%Y_%H%M%S')}.wav"
-    
-        else:
-            audio_path = path
+        audio_path = self.get_audio_basename() + ".wav" if path is None else path
 
         self.recorder._trigger_set_device()
         box = msg_box("Voiceover:\n\n" + text)

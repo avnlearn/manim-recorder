@@ -68,9 +68,8 @@ class RecorderScene(Scene):
         tracker = VoiceoverTracker(
             self, dict_, self.speech_service.cache_dir, self.voice_id)
 
-        self.add_sound(
-            str(Path(self.speech_service.cache_dir) / dict_["final_audio"]))
-
+        self.renderer.file_writer.add_sound(
+            str(Path(self.speech_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None, **kwargs)
         self.current_tracker = tracker
 
         if self.create_subcaption:
@@ -84,7 +83,6 @@ class RecorderScene(Scene):
                 subcaption_buff=subcaption_buff,
                 max_subcaption_len=max_subcaption_len,
             )
-
 
         return tracker
 
@@ -130,16 +128,6 @@ class RecorderScene(Scene):
             )
             current_offset += chunk_duration
 
-    def add_voiceover_ssml(self, ssml: str, **kwargs) -> None:
-        raise NotImplementedError("SSML input not implemented yet.")
-
-    # def save_to_script_file(self, text: str) -> None:
-    #     text = " ".join(text.split())
-    #     # script_file_path = Path(config.get_dir("output_file")).with_suffix(".script.srt")
-    #     with open(SCRIPT_FILE_PATH, "a") as f:
-    #         f.write(text)
-    #         f.write("\n\n")
-
     def wait_for_voiceover(self) -> None:
         """Waits for the voiceover to finish."""
         if not hasattr(self, "current_tracker"):
@@ -160,30 +148,22 @@ class RecorderScene(Scene):
 
     @contextmanager
     def voiceover(
-        self, text: str = None, ssml: str = None, **kwargs
+        self, text: str = None, **kwargs
     ) -> Generator[VoiceoverTracker, None, None]:
         """The main function to be used for adding voiceover to a scene.
 
         Args:
             text (str, optional): The text to be spoken. Defaults to None.
-            ssml (str, optional): The SSML to be spoken. Defaults to None.
-
         Yields:
             Generator[VoiceoverTracker, None, None]: The voiceover tracker object.
         """
-        if text is None and ssml is None:
+        if text is None:
             raise ValueError(
-                "Please specify either a voiceover text or SSML string.")
+                "Please specify either a voiceover text string.")
 
         try:
-            if text is not None:
-                # Increment voice_id after adding a new voiceover
-                self.voice_id += 1
-                yield self.add_voiceover_text(text, **kwargs)
-            elif ssml is not None:
-                # Increment voice_id after adding a new voiceover
-                self.voice_id += 1
-                yield self.add_voiceover_ssml(ssml, **kwargs)
+            # Increment voice_id after adding a new voiceover
+            self.voice_id += 1
+            yield self.add_voiceover_text(text, **kwargs)
         finally:
             self.wait_for_voiceover()
-            

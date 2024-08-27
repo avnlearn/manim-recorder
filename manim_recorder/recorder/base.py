@@ -3,6 +3,7 @@ import os
 import json
 import sys
 from pathlib import Path
+import datetime
 from manim import config, logger
 from manim_recorder.defaults import (
     DEFAULT_VOICEOVER_CACHE_DIR,
@@ -77,6 +78,10 @@ class SpeechService(ABC):
         )
 
         return dict_
+
+    def get_audio_basename(self) -> str:
+        now = datetime.datetime.now()
+        return "Voice_{}".format(now.strftime('%d%m%Y_%H%M%S'))
 
     @abstractmethod
     def generate_from_text(

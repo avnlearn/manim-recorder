@@ -22,14 +22,11 @@ class VoiceRecorder(RecorderScene):
         with self.voiceover(text="This circle is drawn as I speak.") as tracker:
             self.play(Create(circle), run_time=tracker.duration)
 
-        # with self.voiceover("This circle is drawn as I speak.") as tracker:
-        #     self.safe_wait(tracker.duration)
-
         with self.voiceover(text="Let's shift it to the left 2 units.") as tracker:
             self.play(circle.animate.shift(2 * LEFT),
                       run_time=tracker.duration)
 
-        with self.voiceover(text="Thank you for watching."):
+        with self.voiceover(text="Thank you for watching.") as tracker:
             self.play(Uncreate(circle))
 
         self.wait()

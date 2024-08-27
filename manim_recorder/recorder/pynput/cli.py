@@ -8,7 +8,7 @@ from pydub import AudioSegment
 from manim import logger
 
 from manim_recorder.helper import trim_silence, wav2mp3
-from manim_recorder.player import Player
+from manim_recorder.player import Multimedia
 from pynput import keyboard
 import pyaudio
 
@@ -236,7 +236,8 @@ class Recorder:
             try:
                 key = input()[-1].lower()
                 if key == "l":
-                    Player(path)
+                    audio = Multimedia(path)
+                    audio.Play()
                 elif key == "r":
                     if message is not None:
                         print(message)

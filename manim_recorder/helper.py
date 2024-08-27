@@ -140,8 +140,7 @@ def create_dotenv_file(required_variable_names: list, dotenv=".env"):
     """Create a .env file with the required variables"""
     if os.path.exists(dotenv):
         logger.info(
-            f"File {dotenv} already exists. Would you like to overwrite it? [Y/n]"
-        )
+            "File {} already exists. Would you like to overwrite it? [Y/n]".format(dotenv))
         answer = input()
         if answer.lower() == "n":
             logger.info("Skipping .env file creation...")
