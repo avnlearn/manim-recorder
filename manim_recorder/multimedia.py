@@ -1,7 +1,6 @@
 from pydub import AudioSegment
 from pydub.playback import play
-import platform
-import os
+import platform, os, subprocess
 
 
 def Check_OS():
