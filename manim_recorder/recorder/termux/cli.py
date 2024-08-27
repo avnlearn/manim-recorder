@@ -10,6 +10,7 @@ from manim import logger
 from manim_recorder.helper import trim_silence
 
 from pydub import AudioSegment
+from manim_recorder.multimedia import Multimedia
 
 
 class Recorder:
@@ -117,7 +118,8 @@ class Recorder:
             try:
                 key = input()[-1].lower()
                 if key == "l":
-                    self.termux_media_play(path)
+                    audio = Multimedia(path)
+                    audio.Play()
                 elif key == "r":
                     if message is not None:
                         print(message)
