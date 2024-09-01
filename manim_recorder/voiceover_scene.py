@@ -7,7 +7,7 @@ import re
 from manim import Scene, config
 from manim_recorder.recorder.base import SpeechService
 from manim_recorder.tracker import VoiceoverTracker
-from manim_recorder.helper import chunks
+from manim_recorder.multimedia import chunks
 
 
 class RecorderScene(Scene):

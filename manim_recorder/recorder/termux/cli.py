@@ -7,10 +7,8 @@ import subprocess
 from pathlib import Path
 from manim import logger
 
-from manim_recorder.helper import trim_silence
-
 from pydub import AudioSegment
-from manim_recorder.multimedia import Multimedia
+from manim_recorder.multimedia import Multimedia, trim_silence
 
 
 class Recorder:
@@ -39,7 +37,7 @@ class Recorder:
         limit: int = 0,
         encoder: str = "acc",
     ):
-        subprocess.run(
+        subprocess.Popen(
             [
                 "termux-microphone-record",
                 "-d",
@@ -53,16 +51,11 @@ class Recorder:
                 str(sampling_rate),
                 "-c",
                 str(channel_count),
-            ]
-        )
+            ],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     def termux_mic_stop(self):
         subprocess.run(["termux-microphone-record", "-q"])
-
-    def termux_media_play(self, path):
-        subprocess.run(["termux-media-player", "play", str(path)])
-        input("[ Stop ]: Press any key to listen to the recording....")
-        subprocess.run(["termux-media-player", "stop"])
 
     def _record(self, path):
         self.frames = []

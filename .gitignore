@@ -8,3 +8,4 @@ dist/
 dist
 main.py
 *.bak
+# temp/

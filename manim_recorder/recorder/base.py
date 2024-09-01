@@ -4,12 +4,13 @@ import json
 import sys
 from pathlib import Path
 import datetime
+import shutil
 from manim import config, logger
 from manim_recorder.defaults import (
     DEFAULT_VOICEOVER_CACHE_DIR,
     DEFAULT_VOICEOVER_CACHE_JSON_FILENAME,
 )
-from manim_recorder.modify_audio import adjust_speed
+from manim_recorder.multimedia import adjust_speed
 from manim_recorder.helper import append_to_json_file
 
 
@@ -43,7 +44,11 @@ class SpeechService(ABC):
                 DEFAULT_VOICEOVER_CACHE_DIR
             self.default_cache_dir = True
 
-        if not os.path.exists(self.cache_dir):
+        # if not os.path.exists(self.cache_dir): os.makedirs(self.cache_dir)
+        if os.path.exists(self.cache_dir):
+            shutil.rmtree(self.cache_dir)
+            return self.recording_cache_dir(cache_dir)
+        else:
             os.makedirs(self.cache_dir)
 
         return self.cache_dir

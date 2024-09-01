@@ -1,7 +1,7 @@
 from pathlib import Path
 from manim import logger
 from manim import Scene
-from manim_recorder.modify_audio import get_duration
+from manim_recorder.multimedia import get_duration
 
 
 AUDIO_OFFSET_RESOLUTION = 10_000_000

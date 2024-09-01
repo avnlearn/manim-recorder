@@ -7,8 +7,7 @@ from pathlib import Path
 from pydub import AudioSegment
 from manim import logger
 
-from manim_recorder.helper import trim_silence, wav2mp3
-from manim_recorder.multimedia import Multimedia
+from manim_recorder.multimedia import Multimedia, trim_silence, wav2mp3
 from pynput import keyboard
 import pyaudio
 

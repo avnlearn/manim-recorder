@@ -1,6 +1,5 @@
 from pathlib import Path
 from manim_recorder.helper import msg_box
-
 from manim_recorder.recorder.base import SpeechService
 from manim import logger
 
@@ -55,7 +54,7 @@ class RecorderService(SpeechService):
         self, text: str, cache_dir: str = None, path: str = None, **kwargs
     ) -> dict:
         """"""
-        print(kwargs)
+        
         if cache_dir is None:
             cache_dir = self.cache_dir
 
