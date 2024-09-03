@@ -1,13 +1,13 @@
 import os
 from pathlib import Path
 from manim_recorder.helper import msg_box
-from manim_recorder.recorder.base import SpeechService
+from manim_recorder.recorder.base import AudioService
 from manim import logger
 
 from manim_recorder.recorder.server.app import WebRecorder
 
 
-class RecorderService(SpeechService):
+class RecorderService(AudioService):
     """Speech service that records from a microphone during rendering."""
 
     def __init__(
@@ -28,7 +28,7 @@ class RecorderService(SpeechService):
         """
         self.app = WebRecorder(package_dir=os.getcwd())
 
-        SpeechService.__init__(self, **kwargs)
+        AudioService.__init__(self, **kwargs)
 
     def generate_from_text(
         self, text: str, cache_dir: str = None, path: str = None, **kwargs

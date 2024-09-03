@@ -3,9 +3,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional, Generator
 import re
-
+import os
 from manim import Scene, config
-from manim_recorder.recorder.base import SpeechService
+from manim_recorder.recorder.base import AudioService
 from manim_recorder.tracker import VoiceoverTracker
 from manim_recorder.multimedia import chunks
 
@@ -13,29 +13,29 @@ from manim_recorder.multimedia import chunks
 class RecorderScene(Scene):
     """A scene class that can be used to add voiceover to a scene."""
 
-    speech_service: SpeechService
+    audio_service: AudioService
     current_tracker: Optional[VoiceoverTracker]
     create_subcaption: bool
     create_script: bool
     voice_id: int = -1
 
-    def set_speech_service(
+    def set_audio_service(
         self,
-        speech_service: SpeechService,
+        audio_service: AudioService,
         create_subcaption: bool = True,
     ) -> None:
-        """Sets the speech service to be used for the voiceover. This method
+        """Sets the Audio service to be used for the voiceover. This method
         should be called before adding any voiceover to the scene.
 
         Args:
-            speech_service (SpeechService): The speech service to be used.
+            audio_service (AudioService): The audio service to be used.
             create_subcaption (bool, optional): Whether to create subcaptions for the scene. Defaults to True.
         """
-        if hasattr(speech_service, "default_cache_dir"):
-            if speech_service.default_cache_dir:
-                speech_service.recording_cache_dir(Path.joinpath(
-                    str(config.media_dir), "recordings", str(self)))
-        self.speech_service = speech_service
+        if hasattr(audio_service, "default_cache_dir"):
+            if audio_service.default_cache_dir:
+                audio_service.recording_cache_dir(os.path.join(
+                    str(config.media_dir), "sounds", str(self)))
+        self.audio_service = audio_service
         self.current_tracker = None
         self.create_subcaption = create_subcaption
 
@@ -58,18 +58,18 @@ class RecorderScene(Scene):
         Returns:
             VoiceoverTracker: The tracker object for the voiceover.
         """
-        if not hasattr(self, "speech_service"):
+        if not hasattr(self, "audio_service"):
             raise Exception(
                 "You need to call init_voiceover() before adding a voiceover."
             )
 
-        dict_ = self.speech_service._wrap_generate_from_text(
+        dict_ = self.audio_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs)
         tracker = VoiceoverTracker(
-            self, dict_, self.speech_service.cache_dir, self.voice_id)
+            self, dict_, self.audio_service.cache_dir, self.voice_id)
 
         self.renderer.file_writer.add_sound(
-            str(Path(self.speech_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None, **kwargs)
+            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None, **kwargs)
         self.current_tracker = tracker
 
         if self.create_subcaption:

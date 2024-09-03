@@ -66,9 +66,9 @@ class WebRecorder:
 
         # Wait for the shutdown event to be set
         self.shutdown_event.wait()
-
-        # server_thread.join()
-        
+        print("Yes")
+        server_thread.join()
+        print("Yes")
         return self.audio_file_path
 
 

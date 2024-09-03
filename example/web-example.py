@@ -7,7 +7,7 @@ from manim_recorder.recorder.server import RecorderService
 
 class VoiceRecorder(RecorderScene):
     def construct(self):
-        self.set_speech_service(
+        self.set_audio_service(
             RecorderService()
         )
 

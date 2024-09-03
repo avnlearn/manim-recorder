@@ -1,22 +1,19 @@
 from pathlib import Path
-from manim_recorder.recorder.base import SpeechService
+from manim_recorder.recorder.base import AudioService
 # import multiprocessing
 from manim_recorder.recorder.gui.__gui__ import Recorder, QApplication, sys
 
 
-class RecorderService(SpeechService):
+class RecorderService(AudioService):
     """Speech service that records from a microphone during rendering."""
 
-    def __init__(
-        self,
-        **kwargs,
-    ):
-        """Initialize the speech service.
+    def __init__(self, **kwargs,):
+        """Initialize the Audio service.
         Args:
         """
         self.app = QApplication(sys.argv)
         self.recorder = Recorder()
-        SpeechService.__init__(self, **kwargs)
+        AudioService.__init__(self, **kwargs)
 
     def generate_from_text(
         self, text: str, cache_dir: str = None, path: str = None, voice_id: int = None, **kwargs

@@ -14,7 +14,7 @@ from manim_recorder.multimedia import adjust_speed
 from manim_recorder.helper import append_to_json_file
 
 
-class SpeechService(ABC):
+class AudioService(ABC):
     """Abstract base class for a speech service."""
 
     def __init__(
@@ -33,7 +33,6 @@ class SpeechService(ABC):
         self.global_speed = global_speed
         self.default_cache_dir = True
         self.cache_dir = self.recording_cache_dir(cache_dir)
-        self.additional_kwargs = kwargs
 
     def recording_cache_dir(self, cache_dir: Path):
         if cache_dir is not None:
@@ -105,7 +104,7 @@ class SpeechService(ABC):
 
     def get_cached_result(self, input_data, cache_dir, voice_id: int = -1, **kwargs):
         json_path = os.path.join(
-            cache_dir / DEFAULT_VOICEOVER_CACHE_JSON_FILENAME)
+            cache_dir, DEFAULT_VOICEOVER_CACHE_JSON_FILENAME)
 
         if os.path.exists(json_path):
             json_data = json.load(open(json_path, "r"))

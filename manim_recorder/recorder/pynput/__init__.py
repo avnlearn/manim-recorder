@@ -1,13 +1,13 @@
 from pathlib import Path
 from manim_recorder.helper import msg_box
-from manim_recorder.recorder.base import SpeechService
+from manim_recorder.recorder.base import AudioService
 from manim import logger
 
 import pyaudio
 from manim_recorder.recorder.pynput.cli import Recorder
 
 
-class RecorderService(SpeechService):
+class RecorderService(AudioService):
     """Speech service that records from a microphone during rendering."""
 
     def __init__(
@@ -48,7 +48,7 @@ class RecorderService(SpeechService):
             callback_delay=callback_delay,
         )
 
-        SpeechService.__init__(self, **kwargs)
+        AudioService.__init__(self, **kwargs)
 
     def generate_from_text(
         self, text: str, cache_dir: str = None, path: str = None, **kwargs

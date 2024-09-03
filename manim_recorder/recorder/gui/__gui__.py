@@ -3,6 +3,7 @@ import os
 import datetime
 import threading
 import multiprocessing
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QWidget,
     QMessageBox,
-    QComboBox,
+    QComboBox, QStyle
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer
 from manim_recorder.multimedia import Pyaudio_Recorder
@@ -30,14 +31,12 @@ class Recorder(QMainWindow):
         self.initUI()
         self.recorder_service = recorder_service
         self.msg = msg
-        # self.shutdown_event = threading.Event()
-        # self.shutdown_event = multiprocessing.Event()
-        # Populate the combo box with available audio input devices
+        self.File_Saved = False
         self.populate_device_list()
 
     def initUI(self):
         self.setWindowTitle("Audio Recorder")
-        self.setGeometry(100, 100, 300, 250)
+        self.setGeometry(100, 100, 400, 300)
         layout = QVBoxLayout()
 
         # Device Index List
@@ -45,11 +44,20 @@ class Recorder(QMainWindow):
         self.device_combo.currentIndexChanged.connect(self.set_device_index)
         layout.addWidget(self.device_combo)
 
+        # Script
+        self.speech_script_label = QLabel("Speech Script", self)
+        self.speech_script_label.setAlignment(Qt.AlignCenter)
+        self.speech_script_label.setWordWrap(True)
+        layout.addWidget(self.speech_script_label)
+        self.speech_script_label.setStyleSheet(
+            "font-weight:bold; font-size: 30px;")
+
         # Message
         self.massage_label = QLabel("Message", self)
         self.massage_label.setAlignment(Qt.AlignCenter)
         self.massage_label.setWordWrap(True)
         layout.addWidget(self.massage_label)
+        # self.massage_label.setStyleSheet("font-size: 10px;")
 
         # Timer
         self.recording_timer_label = QLabel("00:00:00")
@@ -63,6 +71,11 @@ class Recorder(QMainWindow):
         self.recording_button = QPushButton("Start Recording")
         self.recording_button.clicked.connect(self.toggle_recording)
         layout.addWidget(self.recording_button)
+        # Get the theme icon for the standard "SP_MediaPlay" (play button) icon
+        icon = self.style().standardIcon(QStyle.SP_MediaPlay)
+        self.recording_button.setIcon(icon)
+        
+        
 
         # Playback Button
         self.duration_label = QLabel("00:00:00")
@@ -170,7 +183,7 @@ class Recorder(QMainWindow):
     def save_audio(self):
         if self.recorder_service.frames:
             self.recorder_service.save_recording()
-            self.recorder_service.close()
+            self.File_Saved = True
             self.close()
         else:
             self.show_message("No Recording", "Plase before save file")
@@ -185,13 +198,18 @@ class Recorder(QMainWindow):
         return msg_box.exec()  # Show the message box
 
     def closeEvent(self, event):
-        if self.show_message("Confirmation", "Do you save audio file?") == QMessageBox.Yes:
-            self.save_audio()
+        if not self.File_Saved:
+            if self.show_message("Confirmation", "Do you save audio file?") == QMessageBox.Yes:
+                self.save_audio()
+        # self.recorder_service.frames = []
         event.accept()  # Accept the event to close the window
 
     def record(self, path: str, msg: str = None):
+        self.File_Saved = False
         self.recorder_service.set_filepath(path)
         self.massage_label.setText(msg)
+        self.reset_timer()
+        self.duration_label.setText("")
         self.recording_button.setText("Start Recording")
         self.recording_button.setStyleSheet("")
         self.status_label.setText("Status: None")

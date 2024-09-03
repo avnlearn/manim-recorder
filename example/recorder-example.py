@@ -8,7 +8,7 @@ from pathlib import Path
 
 class VoiceRecorder(RecorderScene):
     def construct(self):
-        self.set_speech_service(
+        self.set_audio_service(
             RecorderService(
                 device_index=0,
                 # cache_dir=Path(
