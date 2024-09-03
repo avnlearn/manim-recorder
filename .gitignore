@@ -10,3 +10,4 @@ temp/
 temp
 main.py
 *.bak
+curses/
