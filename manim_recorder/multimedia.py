@@ -12,6 +12,7 @@ import sys
 import threading
 import wave
 import subprocess
+import time
 
 
 def Check_OS():
@@ -19,7 +20,7 @@ def Check_OS():
     match os_name:
         case "Linux":
             # Check for Termux by looking for the presence of the 'termux' directory
-            if os.path.exists('/data/data/com.termux'):
+            if os.path.exists("/data/data/com.termux"):
                 # if 'TERMUX_VERSION' in os.environ:
                 return "Termux (Android)"
             else:
@@ -57,13 +58,13 @@ class Pyaudio_Recorder:
     def __init__(
         self,
         format: int = pyaudio.paInt16,
-        channels: int = 1 if sys.platform == 'darwin' else 2,
+        channels: int = 1 if sys.platform == "darwin" else 2,
         rate: int = 44100,
         chunk: int = 1024,
         device_index: int = None,
         callback_delay: float = 0.05,
         file_path: str = "output.wav",
-        **kwargs
+        **kwargs,
     ):
         self.format = format
         self.channels = channels
@@ -94,7 +95,8 @@ class Pyaudio_Recorder:
         try:
             print("Channels : ", channels)
             self.channels = self.p.get_device_info_by_host_api_device_index(
-                0, channels).get("maxInputChannels")
+                0, channels
+            ).get("maxInputChannels")
             return True
         except:
             print("Invalid device index. Please try again.")
@@ -105,7 +107,12 @@ class Pyaudio_Recorder:
 
     def get_devices_name(self):
         return [
-            self.p.get_device_info_by_host_api_device_index(0, i).get("name") for i in range(0, self.get_device_count()) if self.p.get_device_info_by_host_api_device_index(0, i).get("maxInputChannels") > 0
+            self.p.get_device_info_by_host_api_device_index(0, i).get("name")
+            for i in range(0, self.get_device_count())
+            if self.p.get_device_info_by_host_api_device_index(0, i).get(
+                "maxInputChannels"
+            )
+            > 0
         ]
 
     def start_recording(self):
@@ -116,17 +123,20 @@ class Pyaudio_Recorder:
         self.thread.start()
 
     def _record(self):
-        stream = self.p.open(format=self.format,
-                             channels=self.channels,
-                             rate=self.rate,
-                             input=True,
-                             frames_per_buffer=self.chunk,
-                             input_device_index=self.device_index)
+        stream = self.p.open(
+            format=self.format,
+            channels=self.channels,
+            rate=self.rate,
+            input=True,
+            frames_per_buffer=self.chunk,
+            input_device_index=self.device_index,
+        )
 
         while self.is_recording:
             if not self.is_paused:
                 data = stream.read(self.chunk)
                 with self.lock:
+                    print(data)
                     self.frames.append(data)
 
         stream.stop_stream()
@@ -143,11 +153,11 @@ class Pyaudio_Recorder:
         self.thread.join()
 
     def save_recording(self):
-        with wave.open(self.file_path, 'wb') as wf:
+        with wave.open(self.file_path, "wb") as wf:
             wf.setnchannels(self.channels)
             wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
             wf.setframerate(self.rate)
-            wf.writeframes(b''.join(self.frames))
+            wf.writeframes(b"".join(self.frames))
 
     def play_playback(self):
         if not self.frames:
@@ -159,10 +169,9 @@ class Pyaudio_Recorder:
         self.playback_thread.start()
 
     def _playback(self):
-        stream = self.p.open(format=self.format,
-                             channels=self.channels,
-                             rate=self.rate,
-                             output=True)
+        stream = self.p.open(
+            format=self.format, channels=self.channels, rate=self.rate, output=True
+        )
 
         for data in self.frames:
             if self.stop_playback_event.is_set():
@@ -180,6 +189,15 @@ class Pyaudio_Recorder:
 
     def close(self):
         self.p.terminate()
+
+    def get_duration(self):
+        if not self.frames:
+            return 0
+        return len(self.frames) * self.chunk / self.rate
+
+    def format_duration(self):
+        struct_time = time.gmtime(self.get_duration())
+        return time.strftime("%H:%M:%S", struct_time)
 
     def set_filepath(self, path: str):
         self.file_path = str(path)
@@ -211,13 +229,13 @@ def get_duration(path: str) -> float:
 
     # Use match-case to check the file extension
     match file_path.suffix.lower():
-        case '.mp3':
+        case ".mp3":
             audio = MP3(path)
             return audio.info.length
-        case '.m4a':
+        case ".m4a":
             audio = mediainfo(path)
-            return float(audio['duration'])
-        case '.wav':
+            return float(audio["duration"])
+        case ".wav":
             with wave.open(str(path), "rb") as wav_file:
                 return wav_file.getnframes() / wav_file.getframerate()
         case _:
@@ -227,7 +245,7 @@ def get_duration(path: str) -> float:
 def chunks(lst: list, n: int):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
-        yield lst[i: i + n]
+        yield lst[i : i + n]
 
 
 def wav2mp3(wav_path, mp3_path=None, remove_wav=True, bitrate="312k"):
@@ -237,8 +255,7 @@ def wav2mp3(wav_path, mp3_path=None, remove_wav=True, bitrate="312k"):
         mp3_path = Path(wav_path).with_suffix(".mp3")
 
     # Convert to mp3
-    AudioSegment.from_wav(wav_path).export(
-        mp3_path, format="mp3", bitrate=bitrate)
+    AudioSegment.from_wav(wav_path).export(mp3_path, format="mp3", bitrate=bitrate)
 
     if remove_wav:
         # Remove the .wav file
@@ -259,7 +276,7 @@ def detect_leading_silence(sound, silence_threshold=-20.0, chunk_size=10):
 
     assert chunk_size > 0  # to avoid infinite loop
     while sound[
-        trim_ms: trim_ms + chunk_size
+        trim_ms : trim_ms + chunk_size
     ].dBFS < silence_threshold and trim_ms < len(sound):
         trim_ms += chunk_size
 
@@ -274,13 +291,12 @@ def trim_silence(
     buffer_end=200,
 ) -> AudioSegment:
     start_trim = detect_leading_silence(sound, silence_threshold, chunk_size)
-    end_trim = detect_leading_silence(
-        sound.reverse(), silence_threshold, chunk_size)
+    end_trim = detect_leading_silence(sound.reverse(), silence_threshold, chunk_size)
 
     # Remove buffer_len milliseconds from start_trim and end_trim
     start_trim = max(0, start_trim - buffer_start)
     end_trim = max(0, end_trim - buffer_end)
 
     duration = len(sound)
-    trimmed_sound = sound[start_trim: duration - end_trim]
+    trimmed_sound = sound[start_trim : duration - end_trim]
     return trimmed_sound

@@ -3,16 +3,13 @@ from manim import *
 from manim_recorder.voiceover_scene import RecorderScene
 # from manim_recorder.services.recorder import RecorderService
 from manim_recorder.recorder.gui import RecorderService
-from manim_recorder.multimedia import Pyaudio_Recorder
 from pathlib import Path
 
 
 class VoiceRecorder(RecorderScene):
     def construct(self):
         self.set_speech_service(
-            RecorderService(
-                recorder_service=Pyaudio_Recorder()
-            )
+            RecorderService()
         )
 
         circle = Circle()

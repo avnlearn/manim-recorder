@@ -29,6 +29,8 @@ sox = "^1.5.0"
 pynput = "^1.7.7"
 mutagen = "^1.47.0"
 PyAudio = "^0.2.14"
+pyside6 = "^6.7.2"
+bottle = "^0.12.25"
 
 [tool.poetry.extras]
 termux = []

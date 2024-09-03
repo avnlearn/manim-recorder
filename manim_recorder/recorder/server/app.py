@@ -1,15 +1,20 @@
 from bottle import Bottle, run, request, static_file, template
 import os
 import datetime
+import threading
+import signal
 
 
 class WebRecorder:
     def __init__(self, package_dir):
         self.app = Bottle()
         self.package_dir = package_dir
-        self.root_dir = package_dir + "/manim_recorder/recorder/server/"
+        self.root_dir = os.path.join(
+            package_dir, "manim_recorder", "recorder", "server")
         self.upload_dir = "uploads"
+        print(self.root_dir)
         self.audio_file_path = None
+        self.shutdown_event = threading.Event()
         if not os.path.exists(self.upload_dir):
             os.makedirs(self.upload_dir)
 
@@ -22,7 +27,6 @@ class WebRecorder:
         self.app.route('/uploads/<filename>', callback=self.serve_file)
 
     def index(self):
-        print(self.root_dir)
         return static_file("index.html", root=self.root_dir)
 
     def server_statics(self, filepath):
@@ -44,7 +48,7 @@ class WebRecorder:
                 if os.path.exists(filename):
                     os.remove(filename)
                 upload.save(filename)
-
+            self.shutdown_event.set()  # Signal to shut down the server
             return "Audio uploaded successfully!"
         return "Failed to upload audio."
 
@@ -53,11 +57,28 @@ class WebRecorder:
 
     def run(self, host='localhost', port=8080, debug=True):
         run(self.app, host=host, port=port, debug=debug)
+        
 
     def record(self, audio_file_path: str, msg: str = None):
         self.audio_file_path = audio_file_path
+        server_thread = threading.Thread(target=self.run, daemon=True)
+        server_thread.start()
+
+        # Wait for the shutdown event to be set
+        self.shutdown_event.wait()
+
+        # server_thread.join()
+        
+        return self.audio_file_path
 
 
 if __name__ == '__main__':
-    app = WebRecorder()
-    app.run()
+    app = WebRecorder("/home/mrlinux/Documents/manim-recorder")
+    path_audio = app.record("/home/mrlinux/Documents/manim-recorder/media/recordings/VoiceRecorder/Voice_02092024_143652.wav")
+    print(f"Saved, {path_audio}")
+    path_audio = app.record("/home/mrlinux/Documents/manim-recorder/media/recordings/VoiceRecorder/Voice_02092024_143654.wav")
+    print(f"Saved, {path_audio}")
+    path_audio = app.record("/home/mrlinux/Documents/manim-recorder/media/recordings/VoiceRecorder/Voice_02092024_143658.wav")
+    print(f"Saved, {path_audio}")
+    path_audio = app.record("/home/mrlinux/Documents/manim-recorder/media/recordings/VoiceRecorder/Voice_02092024_143656.wav")
+    print(f"Saved, {path_audio}")

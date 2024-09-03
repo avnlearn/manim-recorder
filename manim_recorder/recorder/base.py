@@ -56,7 +56,6 @@ class SpeechService(ABC):
     def _wrap_generate_from_text(self, text: str, path: str = None, **kwargs) -> dict:
         # Replace newlines with lines, reduce multiple consecutive spaces to single
         text = " ".join(text.split())
-
         dict_ = self.generate_from_text(
             text, cache_dir=None, path=path, **kwargs)
 

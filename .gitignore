@@ -6,6 +6,7 @@ __pycache__
 __pycache__/
 dist/
 dist
+temp/
+temp
 main.py
 *.bak
-# temp/

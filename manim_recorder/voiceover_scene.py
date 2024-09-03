@@ -33,8 +33,8 @@ class RecorderScene(Scene):
         """
         if hasattr(speech_service, "default_cache_dir"):
             if speech_service.default_cache_dir:
-                speech_service.recording_cache_dir(
-                    Path(config.media_dir) / Path("recordings") / Path(self.__class__.__name__))
+                speech_service.recording_cache_dir(Path.joinpath(
+                    str(config.media_dir), "recordings", str(self)))
         self.speech_service = speech_service
         self.current_tracker = None
         self.create_subcaption = create_subcaption
