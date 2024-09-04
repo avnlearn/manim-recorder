@@ -167,7 +167,7 @@ class Pyaudio_Recorder:
             if not self.is_paused:
                 data = stream.read(self.chunk)
                 with self.lock:
-                    print(data)
+                    # print(data)
                     self.frames.append(data)
 
         stream.stop_stream()

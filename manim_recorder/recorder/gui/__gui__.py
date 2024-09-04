@@ -36,7 +36,9 @@ class Recorder(QMainWindow):
 
     def initUI(self):
         self.setWindowTitle("Audio Recorder")
-        self.setGeometry(100, 100, 400, 300)
+        self.setGeometry(100, 100, 500, 400)
+        self.center()
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         layout = QVBoxLayout()
 
         # Device Index List
@@ -46,17 +48,18 @@ class Recorder(QMainWindow):
 
         # Script
         self.speech_script_label = QLabel("Speech Script", self)
-        self.speech_script_label.setAlignment(Qt.AlignCenter)
+        self.speech_script_label.setAlignment(Qt.AlignLeft)
         self.speech_script_label.setWordWrap(True)
         layout.addWidget(self.speech_script_label)
         self.speech_script_label.setStyleSheet(
-            "font-weight:bold; font-size: 30px;")
+            "font-weight:bold; font-size: 20px;")
 
         # Message
         self.massage_label = QLabel("Message", self)
         self.massage_label.setAlignment(Qt.AlignCenter)
         self.massage_label.setWordWrap(True)
         layout.addWidget(self.massage_label)
+        self.massage_label.setStyleSheet("color:orange;")
         # self.massage_label.setStyleSheet("font-size: 10px;")
 
         # Timer
@@ -74,8 +77,6 @@ class Recorder(QMainWindow):
         # Get the theme icon for the standard "SP_MediaPlay" (play button) icon
         icon = self.style().standardIcon(QStyle.SP_MediaPlay)
         self.recording_button.setIcon(icon)
-        
-        
 
         # Playback Button
         self.duration_label = QLabel("00:00:00")
@@ -101,6 +102,19 @@ class Recorder(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
+
+    def center(self):
+        # Get the screen geometry using QScreen
+        screen_geometry = self.screen().availableGeometry()
+        # Get the window geometry
+        window_geometry = self.geometry()
+
+        # Calculate the center position
+        x = (screen_geometry.width() - window_geometry.width()) // 2
+        y = (screen_geometry.height() - window_geometry.height()) // 2
+
+        # Move the window to the center
+        self.move(x, y)
 
     def populate_device_list(self):
         self.device_combo.addItems(self.recorder_service.get_devices_name())

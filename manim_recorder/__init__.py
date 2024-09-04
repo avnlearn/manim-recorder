@@ -1,7 +1,7 @@
 """Manim Recorder plugin for manim"""
 
 from manim_recorder.voiceover_scene import RecorderScene
-from manim_recorder.tracker import VoiceoverTracker
+from manim_recorder.tracker import SoundTracker
 
 # import pkg_resources
 

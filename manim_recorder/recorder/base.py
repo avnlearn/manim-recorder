@@ -43,12 +43,13 @@ class AudioService(ABC):
                 DEFAULT_VOICEOVER_CACHE_DIR
             self.default_cache_dir = True
 
-        # if not os.path.exists(self.cache_dir): os.makedirs(self.cache_dir)
-        if os.path.exists(self.cache_dir):
-            shutil.rmtree(self.cache_dir)
-            return self.recording_cache_dir(cache_dir)
-        else:
+        if not os.path.exists(self.cache_dir):
             os.makedirs(self.cache_dir)
+        # if os.path.exists(self.cache_dir):
+        #     shutil.rmtree(self.cache_dir)
+        #     return self.recording_cache_dir(cache_dir)
+        # else:
+        #     os.makedirs(self.cache_dir)
 
         return self.cache_dir
 

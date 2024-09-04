@@ -19,7 +19,7 @@ class RecorderService(AudioService):
         self, text: str, cache_dir: str = None, path: str = None, voice_id: int = None, **kwargs
     ) -> dict:
         """"""
-
+        
         if cache_dir is None:
             cache_dir = self.cache_dir
 
@@ -27,8 +27,8 @@ class RecorderService(AudioService):
             'id': voice_id,
             "input_text": text,
         }
-        cached_result = self.get_cached_result(input_data, cache_dir, **kwargs)
-
+        cached_result = self.get_cached_result(input_data, cache_dir, voice_id=voice_id, **kwargs)
+        
         if cached_result is not None:
             return cached_result
 
