@@ -2,6 +2,8 @@
 
 ## GUI (Using PySide6)
 
+![GUI Recorder](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording.png?raw=true)
+
 ```python
 from manim import *
 # from manim_recorder import VoiceoverScene
