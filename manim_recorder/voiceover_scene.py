@@ -1,20 +1,22 @@
-from math import ceil
-from contextlib import contextmanager
-from pathlib import Path
-from typing import Optional, Generator
+"""
+"""
 import re
 import os
+from pathlib import Path
+from math import ceil
+from contextlib import contextmanager
+from typing import Optional, Generator
 from manim import Scene, config
 from manim_recorder.recorder.base import AudioService
-from manim_recorder.tracker import VoiceoverTracker
+from manim_recorder.tracker import SoundTracker
 from manim_recorder.multimedia import chunks
 
 
 class RecorderScene(Scene):
-    """A scene class that can be used to add voiceover to a scene."""
+    """A scene class that can be used to add sound to a scene."""
 
     audio_service: AudioService
-    current_tracker: Optional[VoiceoverTracker]
+    current_tracker: Optional[SoundTracker]
     create_subcaption: bool
     create_script: bool
     voice_id: int = -1
@@ -24,8 +26,8 @@ class RecorderScene(Scene):
         audio_service: AudioService,
         create_subcaption: bool = True,
     ) -> None:
-        """Sets the Audio service to be used for the voiceover. This method
-        should be called before adding any voiceover to the scene.
+        """Sets the Audio service to be used for the sound. This method
+        should be called before adding any sound to the scene.
 
         Args:
             audio_service (AudioService): The audio service to be used.
@@ -46,8 +48,8 @@ class RecorderScene(Scene):
         max_subcaption_len: int = 70,
         subcaption_buff: float = 0.1,
         **kwargs,
-    ) -> VoiceoverTracker:
-        """Adds voiceover to the scene.
+    ) -> SoundTracker:
+        """Adds sound to the scene.
 
         Args:
             text (str): The text to be spoken.
@@ -56,16 +58,16 @@ class RecorderScene(Scene):
             subcaption_buff (float, optional): The duration between split subcaption chunks in seconds. Defaults to 0.1.
 
         Returns:
-            VoiceoverTracker: The tracker object for the voiceover.
+            SoundTracker: The tracker object for the sound.
         """
         if not hasattr(self, "audio_service"):
             raise Exception(
-                "You need to call init_voiceover() before adding a voiceover."
+                "You need to call init_sound() before adding a sound."
             )
 
         dict_ = self.audio_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs)
-        tracker = VoiceoverTracker(
+        tracker = SoundTracker(
             self, dict_, self.audio_service.cache_dir, self.voice_id)
 
         self.renderer.file_writer.add_sound(
@@ -129,7 +131,7 @@ class RecorderScene(Scene):
             current_offset += chunk_duration
 
     def wait_for_voiceover(self) -> None:
-        """Waits for the voiceover to finish."""
+        """Waits for the sound to finish."""
         if not hasattr(self, "current_tracker"):
             return
         if self.current_tracker is None:
@@ -149,20 +151,20 @@ class RecorderScene(Scene):
     @contextmanager
     def voiceover(
         self, text: str = None, **kwargs
-    ) -> Generator[VoiceoverTracker, None, None]:
-        """The main function to be used for adding voiceover to a scene.
+    ) -> Generator[SoundTracker, None, None]:
+        """The main function to be used for adding sound to a scene.
 
         Args:
             text (str, optional): The text to be spoken. Defaults to None.
         Yields:
-            Generator[VoiceoverTracker, None, None]: The voiceover tracker object.
+            Generator[SoundTracker, None, None]: The sound tracker object.
         """
         if text is None:
             raise ValueError(
-                "Please specify either a voiceover text string.")
+                "Please specify either a sound text string.")
 
         try:
-            # Increment voice_id after adding a new voiceover
+            # Increment voice_id after adding a new sound
             self.voice_id += 1
             yield self.add_voiceover_text(text, **kwargs)
         finally:

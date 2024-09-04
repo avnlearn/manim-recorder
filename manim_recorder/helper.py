@@ -1,12 +1,10 @@
-import importlib
+"""
+helper for manim-recorder
+"""
+
 import json
-import re
 import os
-import sys
-from typing import Union
-import pip
 import textwrap
-from pathlib import Path
 from manim import logger
 
 
