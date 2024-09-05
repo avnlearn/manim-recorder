@@ -67,8 +67,8 @@ class Recorder(QMainWindow):
         self.recording_timer_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.recording_timer_label)
         self.recording_timer_label.setStyleSheet("font-size: 30px;")
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_time)
+        self.recording_timer = QTimer()
+        self.recording_timer.timeout.connect(self.update_time)
 
         # Recording Button
         self.recording_button = QPushButton("Start Recording")
@@ -124,10 +124,11 @@ class Recorder(QMainWindow):
         self.device_index = self.device_combo.itemData(index)
 
     def start_timer(self):
-        self.timer.start(100)  # Timer will trigger every 1000 ms (1 second)
+        # Timer will trigger every 1000 ms (1 second)
+        self.recording_timer.start(100)
 
     def stop_timer(self):
-        self.timer.stop()
+        self.recording_timer.stop()
 
     def reset_timer(self):
         self.stop_timer()  # Stop the timer if it's running
@@ -165,12 +166,12 @@ class Recorder(QMainWindow):
         self.recording_button.setText("re-Recording")
         self.recording_button.setStyleSheet(
             "background-color: black; color: white;")
-        self.status_label.setText("Status: Stopped Recording")
+        self.status_label.setText("Status: Re-recording")
         self.recorder_service.stop_recording()
         # self.save_audio()
 
     def toggle_playback(self):
-        if not self.recorder_service.is_playing:
+        if not self.recorder_service.is_playing and not self.recorder_service.is_recording:
             self.play_playback()
             self.recording_button.setDisabled(True)
         else:
@@ -218,10 +219,14 @@ class Recorder(QMainWindow):
         # self.recorder_service.frames = []
         event.accept()  # Accept the event to close the window
 
-    def record(self, path: str, msg: str = None):
+    def record(self, path: str = None, msg: str = None, voice_id: int = None):
         self.File_Saved = False
-        self.recorder_service.set_filepath(path)
-        self.massage_label.setText(msg)
+        if path is not None:
+            self.recorder_service.set_filepath(path)
+        if msg is not None:
+            self.massage_label.setText(msg)
+        if voice_id is not None:
+            self.speech_script_label.setText("Sound ID : {}".format(voice_id))
         self.reset_timer()
         self.duration_label.setText("")
         self.recording_button.setText("Start Recording")

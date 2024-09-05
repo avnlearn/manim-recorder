@@ -130,6 +130,10 @@ class RecorderScene(Scene):
             )
             current_offset += chunk_duration
 
+    def say_to_wait(self, text: str = None):
+        with self.voiceover("Say {} : {}".format(self.voice_id, "" if text is None else text)) as tracker:
+            self.safe_wait(tracker.duration)
+
     def wait_for_voiceover(self) -> None:
         """Waits for the sound to finish."""
         if not hasattr(self, "current_tracker"):

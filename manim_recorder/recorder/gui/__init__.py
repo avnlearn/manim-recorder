@@ -33,7 +33,7 @@ class RecorderService(AudioService):
             return cached_result
 
         audio_path = self.get_audio_basename() + ".wav" if path is None else path
-        self.recorder.record(str(Path(cache_dir) / audio_path), text)
+        self.recorder.record(str(Path(cache_dir) / audio_path), text, voice_id)
         self.app.exec()
         json_dict = {
             "input_data": input_data,

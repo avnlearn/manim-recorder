@@ -220,7 +220,7 @@ class Pyaudio_Recorder:
             if self.stop_playback_event.is_set():
                 break
             stream.write(data)
-
+        
         stream.stop_stream()
         stream.close()
 
