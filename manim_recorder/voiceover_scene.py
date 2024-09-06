@@ -24,7 +24,8 @@ class RecorderScene(Scene):
     def set_audio_service(
         self,
         audio_service: AudioService,
-        create_subcaption: bool = True,
+        create_subcaption: bool | None = True,
+        cache_dir_delete: bool = False
     ) -> None:
         """Sets the Audio service to be used for the sound. This method
         should be called before adding any sound to the scene.
@@ -36,7 +37,7 @@ class RecorderScene(Scene):
         if hasattr(audio_service, "default_cache_dir"):
             if audio_service.default_cache_dir:
                 audio_service.recording_cache_dir(os.path.join(
-                    str(config.media_dir), "sounds", str(self)))
+                    str(config.media_dir), "sounds", str(self)), cache_dir_delete)
         self.audio_service = audio_service
         self.current_tracker = None
         self.create_subcaption = create_subcaption
@@ -47,6 +48,7 @@ class RecorderScene(Scene):
         subcaption: Optional[str] = None,
         max_subcaption_len: int = 70,
         subcaption_buff: float = 0.1,
+        gain_to_background: float | None = None,
         **kwargs,
     ) -> SoundTracker:
         """Adds sound to the scene.
@@ -71,7 +73,7 @@ class RecorderScene(Scene):
             self, dict_, self.audio_service.cache_dir, self.voice_id)
 
         self.renderer.file_writer.add_sound(
-            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None, **kwargs)
+            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None)
         self.current_tracker = tracker
 
         if self.create_subcaption:
@@ -130,7 +132,7 @@ class RecorderScene(Scene):
             )
             current_offset += chunk_duration
 
-    def say_to_wait(self, text: str = None):
+    def say_to_wait(self, text: str = None) -> None:
         with self.voiceover("Say {} : {}".format(self.voice_id, "" if text is None else text)) as tracker:
             self.safe_wait(tracker.duration)
 
