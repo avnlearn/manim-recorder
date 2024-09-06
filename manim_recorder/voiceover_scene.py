@@ -6,7 +6,7 @@ from pathlib import Path
 from math import ceil
 from contextlib import contextmanager
 from typing import Optional, Generator
-from manim import Scene, config
+from manim import Scene, config, Mobject
 from manim_recorder.recorder.base import AudioService
 from manim_recorder.tracker import SoundTracker
 from manim_recorder.multimedia import chunks
@@ -156,22 +156,37 @@ class RecorderScene(Scene):
 
     @contextmanager
     def voiceover(
-        self, text: str = None, **kwargs
+        self, text: str = None, mobject:  Mobject | None = None, **kwargs
     ) -> Generator[SoundTracker, None, None]:
         """The main function to be used for adding sound to a scene.
 
         Args:
             text (str, optional): The text to be spoken. Defaults to None.
+            mobject (str, optional) : The Mobject to be spoken. Default to None
         Yields:
             Generator[SoundTracker, None, None]: The sound tracker object.
         """
-        if text is None:
+        if text is None and Mobject is None:
             raise ValueError(
-                "Please specify either a sound text string.")
+                "Please specify either a sound text string and mobject path.")
+
+        match text:
+            case Mobject() if hasattr(mobject, "get_file_path") and mobject is None:
+                mobject = text.get_file_path()
+            case str() if os.path.exists(text) and mobject is None:
+                mobject = text
+            case None:
+                text = ""
+
+        match mobject:
+            case Mobject() if hasattr(mobject, "get_file_path"):
+                mobject = mobject.get_file_path()
+            case str() if os.path.exists(mobject):
+                pass
 
         try:
             # Increment voice_id after adding a new sound
             self.voice_id += 1
-            yield self.add_voiceover_text(text, **kwargs)
+            yield self.add_voiceover_text(text, svg_path=mobject, **kwargs)
         finally:
             self.wait_for_voiceover()

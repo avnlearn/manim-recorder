@@ -14,7 +14,13 @@ class VoiceRecorder(RecorderScene):
         circle = Circle()
         square = Square().shift(2 * RIGHT)
         math = MathTex(r"x = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
-        with self.voiceover(text="Say", mobject_path=math.get_file_path()) as tracker:
+        print(isinstance(math, Mobject))
+        with self.voiceover(mobject=math.get_file_path()) as tracker:
+            self.play(Write(math), run_time=tracker.duration)
+
+        self.play(Unwrite(math))
+
+        with self.voiceover(mobject_path=math.get_file_path()) as tracker:
             self.play(Write(math), run_time=tracker.duration)
 
         self.play(Unwrite(math))

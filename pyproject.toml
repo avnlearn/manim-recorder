@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "manim-recorder"
-version = "0.2.1"
+version = "0.2.2"
 description = "Manim plugin for recorder"
 authors = ["AvN Learn <avnlearn@gmail.com>"]
 license = "MIT"

@@ -277,15 +277,15 @@ class Recorder(QMainWindow):
         # self.message_object.load(self.DEFAULT_SVG)
         # self.setSvg_Size(self.DEFAULT_SVG)
 
-    def record(self, path: str = None, msg: str = None, voice_id: int = None, mobject_path: any = None, **kwargs):
+    def record(self, path: str = None, msg: str = None, voice_id: int = None, svg_path: any = None, **kwargs):
         self.resetUI()
         if path is not None:
             self.recorder_service.set_filepath(path)
-        if mobject_path is not None:
-            mobject_path = str(mobject_path)
+        if svg_path is not None:
+            svg_path = str(svg_path)
             self.message_object.setStyleSheet("background-color: white; padding: 20px;")
-            self.message_object.load(mobject_path)
-            self.setSvg_Size(mobject_path)
+            self.message_object.load(svg_path)
+            self.setSvg_Size(svg_path)
 
         if msg is not None:
             self.massage_label.setText(msg)
