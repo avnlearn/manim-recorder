@@ -17,6 +17,7 @@ class RecorderService(AudioService):
         """
         self.app = QApplication(sys.argv)
         self.recorder = Recorder()
+        self.recorder.show()
         AudioService.__init__(self, **kwargs)
         # self.start_application()
 

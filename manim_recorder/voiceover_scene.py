@@ -67,31 +67,37 @@ class RecorderScene(Scene):
             SoundTracker: The tracker object for the sound.
         """
         if not hasattr(self, "audio_service"):
-            raise Exception("You need to call init_sound() before adding a sound.")
+            raise Exception(
+                "You need to call init_sound() before adding a sound.")
 
         dict_ = self.audio_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs
         )
-        tracker = SoundTracker(self, dict_, self.audio_service.cache_dir, self.voice_id)
+        tracker = SoundTracker(
+            self, dict_, self.audio_service.cache_dir, self.voice_id)
 
-        self.renderer.file_writer.add_sound(
-            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]),
-            self.renderer.time + 0,
-            None,
-        )
-        self.current_tracker = tracker
-
-        if self.create_subcaption:
-            if subcaption is None:
-                # Remove placeholders
-                subcaption = re.sub(r"<[^<>]+/>", "", text)
-
-            self.add_wrapped_subcaption(
-                subcaption,
-                tracker.duration,
-                subcaption_buff=subcaption_buff,
-                max_subcaption_len=max_subcaption_len,
+        audio_file_path = str(
+            Path(self.audio_service.cache_dir) / dict_["final_audio"])
+            
+        if os.path.exists(audio_file_path):
+            self.renderer.file_writer.add_sound(
+                str(Path(self.audio_service.cache_dir) / dict_["final_audio"]),
+                self.renderer.time + 0,
+                None,
             )
+            self.current_tracker = tracker
+
+            if self.create_subcaption:
+                if subcaption is None:
+                    # Remove placeholders
+                    subcaption = re.sub(r"<[^<>]+/>", "", text)
+
+                self.add_wrapped_subcaption(
+                    subcaption,
+                    tracker.duration,
+                    subcaption_buff=subcaption_buff,
+                    max_subcaption_len=max_subcaption_len,
+                )
 
         return tracker
 

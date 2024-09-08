@@ -1,6 +1,7 @@
 """
 tracker for manim-recorder
 """
+
 from pathlib import Path
 from manim import Scene
 from manim_recorder.multimedia import get_duration
@@ -23,8 +24,10 @@ class SoundTracker:
         self.data = data
         self.cache_dir = cache_dir
         self.voice_id = voice_id
-        self.duration = get_duration(
-            Path(cache_dir) / self.data["final_audio"])
+        audio_file_path = Path(cache_dir) / self.data["final_audio"]
+        self.duration = 1
+        if audio_file_path.exists():
+            self.duration = get_duration(Path(cache_dir) / self.data["final_audio"])
         last_t = scene.renderer.time
         if last_t is None:
             last_t = 0

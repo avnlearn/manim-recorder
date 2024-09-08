@@ -248,6 +248,25 @@ def WindowCenter(parent, onTop=False):
         parent.setWindowFlag(parent.windowFlags() | Qt.WindowStaysOnTopHint)
 
 
+def show_message(title, message, icon=QMessageBox.Information, parent=None):
+    """
+    Displays a message box with the specified title and message.
+
+    Args:
+        title: The title of the message box.
+        message: The message to display.
+
+    Returns:
+        int: The button clicked by the user.
+    """
+    msg_box = QMessageBox(parent)
+    msg_box.setWindowTitle(title)
+    msg_box.setText(message)
+    msg_box.setIcon(QMessageBox.Information)
+    msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+    return msg_box.exec()  # Show the message box
+
+
 class SVG_Viewer(QSvgWidget):
     """Custom QSvgWidget class for displaying and interacting with SVG files."""
 

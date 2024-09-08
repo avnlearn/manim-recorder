@@ -4,7 +4,7 @@ GUI Recorder
 
 import sys
 import datetime
-from PySide6.QtGui import QIcon, QPalette, QColor
+from PySide6.QtGui import QIcon, QPalette, QColor, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -19,7 +19,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QStatusBar,
     QSizePolicy,
-    QButtonGroup,
     QProgressBar,
 )
 import numpy as np
@@ -35,6 +34,7 @@ from manim_recorder.recorder.gui.ui import (
     WindowCenter,
     SVG_Viewer,
     SVG_Icon,
+    show_message,
 )
 
 
@@ -130,12 +130,14 @@ class Recorder(QMainWindow):
             stylesheet="modern",
             disable=True,
         )
+        self.pause_button.setToolTip("Pause")
         self.play_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaPlay),
             func=self.__play,
             stylesheet="modern",
             disable=True,
         )
+        self.play_button.setToolTip("Play")
         self.stop_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaStop),
             func=self.__stop,
@@ -147,12 +149,14 @@ class Recorder(QMainWindow):
             stylesheet="modern",
             func=self.__rec,
         )
+        self.rec_button.setToolTip("Recording")
         self.save_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_DialogSaveButton),
             stylesheet="modern",
             func=self.save_audio,
             disable=True,
         )
+        self.save_button.setToolTip("Save")
         media_layout.addWidget(self.pause_button)
         media_layout.addWidget(self.play_button)
         media_layout.addWidget(self.stop_button)
@@ -192,16 +196,8 @@ class Recorder(QMainWindow):
             stylesheet="modern",
             disable=True,
         )
+        self.audacity_button.setToolTip("Audacity Run")
         feature_layout.addWidget(self.audacity_button)
-
-        # Skip Button
-        self.accept_button = Create_Button(
-            "Skip",
-            stylesheet="modern",
-            func=self.close,
-            disable=True,
-        )
-        feature_layout.addWidget(self.accept_button)
 
         # Accept Button
         self.accept_button = Create_Button(
@@ -210,6 +206,7 @@ class Recorder(QMainWindow):
             func=self.close,
             disable=True,
         )
+        self.accept_button.setToolTip("Accept and Exit")
         feature_layout.addWidget(self.accept_button)
         layout.addLayout(feature_layout)
 
@@ -220,8 +217,28 @@ class Recorder(QMainWindow):
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
-
+        self.setup_shortcuts()
         self.curve = self.plot_widget.plot(pen="g")
+
+    def setup_shortcuts(self):
+        """Sets up keyboard shortcuts for the application."""
+        # Shortcut for starting recording
+        QShortcut(QKeySequence("r"), self, self.__rec)
+
+        # Shortcut for stopping recording or playback
+        QShortcut(QKeySequence("s"), self, self.__stop)
+
+        # Shortcut for playing audio
+        QShortcut(QKeySequence("p"), self, self.__play)
+
+        # Shortcut for pausing audio
+        QShortcut(QKeySequence("t"), self, self.__pause)
+
+        # Shortcut for saving audio
+        QShortcut(QKeySequence("Ctrl+s"), self, self.save_audio)
+
+        # Shortcut for accepting and closing the application
+        QShortcut(QKeySequence("Ctrl+Q"), self, self.close)
 
     def populate_device_list(self):
         """Populates the device combo box with available audio devices."""
@@ -364,31 +381,13 @@ class Recorder(QMainWindow):
             self.File_Saved = True
             self.audacity_button.setDisabled(False)
         else:
-            self.show_message("No Recording", "Please record before saving the file.")
-
-    def show_message(self, title, message):
-        """
-        Displays a message box with the specified title and message.
-
-        Args:
-            title: The title of the message box.
-            message: The message to display.
-
-        Returns:
-            int: The button clicked by the user.
-        """
-        msg_box = QMessageBox(self)
-        msg_box.setWindowTitle(title)
-        msg_box.setText(message)
-        msg_box.setIcon(QMessageBox.Information)
-        msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        return msg_box.exec()  # Show the message box
+            show_message("No Recording", "Please record before saving the file.")
 
     def closeEvent(self, event):
         """Handles the close event of the main window."""
         if not self.File_Saved:
             if (
-                self.show_message("Confirmation", "Do you want to save the audio file?")
+                show_message("Confirmation", "Do you want to save the audio file?")
                 == QMessageBox.Yes
             ):
                 self.save_audio()
@@ -420,6 +419,7 @@ class Recorder(QMainWindow):
         msg: str = None,
         voice_id: int = None,
         svg_path: any = None,
+        show: bool = True,
         **kwargs,
     ):
         """
@@ -446,8 +446,8 @@ class Recorder(QMainWindow):
         if voice_id is not None:
             self.setWindowTitle("Sound ID : {}".format(voice_id))
             # self.speech_script_label.setText("Sound ID : {}".format(voice_id))
-
-        self.show()
+        if show:
+            self.show()
 
 
 if __name__ == "__main__":
