@@ -238,7 +238,7 @@ class Recorder(QMainWindow):
         QShortcut(QKeySequence("Ctrl+s"), self, self.save_audio)
 
         # Shortcut for accepting and closing the application
-        QShortcut(QKeySequence("Ctrl+Q"), self, self.close)
+        QShortcut(QKeySequence("Ctrl+q"), self, self.close)
 
     def populate_device_list(self):
         """Populates the device combo box with available audio devices."""
