@@ -1,5 +1,6 @@
 """
 """
+
 import re
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ from manim import Scene, config, Mobject
 from manim_recorder.recorder.base import AudioService
 from manim_recorder.tracker import SoundTracker
 from manim_recorder.multimedia import chunks
+from manim_recorder.helper import text_and_mobject
 
 
 class RecorderScene(Scene):
@@ -25,7 +27,7 @@ class RecorderScene(Scene):
         self,
         audio_service: AudioService,
         create_subcaption: bool | None = True,
-        cache_dir_delete: bool = False
+        cache_dir_delete: bool = False,
     ) -> None:
         """Sets the Audio service to be used for the sound. This method
         should be called before adding any sound to the scene.
@@ -36,8 +38,10 @@ class RecorderScene(Scene):
         """
         if hasattr(audio_service, "default_cache_dir"):
             if audio_service.default_cache_dir:
-                audio_service.recording_cache_dir(os.path.join(
-                    str(config.media_dir), "sounds", str(self)), cache_dir_delete)
+                audio_service.recording_cache_dir(
+                    os.path.join(str(config.media_dir), "sounds", str(self)),
+                    cache_dir_delete,
+                )
         self.audio_service = audio_service
         self.current_tracker = None
         self.create_subcaption = create_subcaption
@@ -63,17 +67,18 @@ class RecorderScene(Scene):
             SoundTracker: The tracker object for the sound.
         """
         if not hasattr(self, "audio_service"):
-            raise Exception(
-                "You need to call init_sound() before adding a sound."
-            )
+            raise Exception("You need to call init_sound() before adding a sound.")
 
         dict_ = self.audio_service._wrap_generate_from_text(
-            text=text, voice_id=self.voice_id, **kwargs)
-        tracker = SoundTracker(
-            self, dict_, self.audio_service.cache_dir, self.voice_id)
+            text=text, voice_id=self.voice_id, **kwargs
+        )
+        tracker = SoundTracker(self, dict_, self.audio_service.cache_dir, self.voice_id)
 
         self.renderer.file_writer.add_sound(
-            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]), self.renderer.time + 0, None)
+            str(Path(self.audio_service.cache_dir) / dict_["final_audio"]),
+            self.renderer.time + 0,
+            None,
+        )
         self.current_tracker = tracker
 
         if self.create_subcaption:
@@ -133,7 +138,9 @@ class RecorderScene(Scene):
             current_offset += chunk_duration
 
     def say_to_wait(self, text: str = None) -> None:
-        with self.voiceover("Say {} : {}".format(self.voice_id, "" if text is None else text)) as tracker:
+        with self.voiceover(
+            "Say {} : {}".format(self.voice_id, "" if text is None else text)
+        ) as tracker:
             self.safe_wait(tracker.duration)
 
     def wait_for_voiceover(self) -> None:
@@ -156,7 +163,7 @@ class RecorderScene(Scene):
 
     @contextmanager
     def voiceover(
-        self, text: str = None, mobject:  Mobject | None = None, **kwargs
+        self, text: str | None = None, mobject: Mobject | None = None, **kwargs
     ) -> Generator[SoundTracker, None, None]:
         """The main function to be used for adding sound to a scene.
 
@@ -166,27 +173,16 @@ class RecorderScene(Scene):
         Yields:
             Generator[SoundTracker, None, None]: The sound tracker object.
         """
-        if text is None and Mobject is None:
+        if text is None and mobject is None:
             raise ValueError(
-                "Please specify either a sound text string and mobject path.")
-
-        match text:
-            case Mobject() if hasattr(mobject, "get_file_path") and mobject is None:
-                mobject = text.get_file_path()
-            case str() if os.path.exists(text) and mobject is None:
-                mobject = text
-            case None:
-                text = ""
-
-        match mobject:
-            case Mobject() if hasattr(mobject, "get_file_path"):
-                mobject = mobject.get_file_path()
-            case str() if os.path.exists(mobject):
-                pass
+                "Please specify either a sound text string and mobject path."
+            )
+        else:
+            text, mobject = text_and_mobject(text, mobject)
 
         try:
             # Increment voice_id after adding a new sound
             self.voice_id += 1
-            yield self.add_voiceover_text(text, svg_path=mobject, **kwargs)
+            yield self.add_voiceover_text(text, mobject=mobject, **kwargs)
         finally:
             self.wait_for_voiceover()

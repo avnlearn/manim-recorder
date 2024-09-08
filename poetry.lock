@@ -898,6 +898,20 @@ pyobjc-core = ">=10.3.1"
 pyobjc-framework-Cocoa = ">=10.3.1"
 
 [[package]]
+name = "pyqtgraph"
+version = "0.13.7"
+description = "Scientific Graphics and GUI Library for Python"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "pyqtgraph-0.13.7-py3-none-any.whl", hash = "sha256:7754edbefb6c367fa0dfb176e2d0610da3ada20aa7a5318516c74af5fb72bf7a"},
+    {file = "pyqtgraph-0.13.7.tar.gz", hash = "sha256:64f84f1935c6996d0e09b1ee66fe478a7771e3ca6f3aaa05f00f6e068321d9e3"},
+]
+
+[package.dependencies]
+numpy = ">=1.22.0"
+
+[[package]]
 name = "pyrr"
 version = "0.10.3"
 description = "3D mathematical functions using NumPy"
@@ -1265,4 +1279,4 @@ termux = []
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "0c269372952cc4b49e0b1e8bcccac38c96812317547731cbbb146feea474642e"
+content-hash = "b50e62a390e794a60693b779d25bd5c31f25a84717d508d69cc2e075e0175c01"

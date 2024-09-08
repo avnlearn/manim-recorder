@@ -1,15 +1,88 @@
 """
-helper for manim-recorder
+Helper for manim-recorder
 """
 
 import json
 import os
 import textwrap
-from manim import logger
+import platform  # Added import for platform
+from manim import logger, Mobject
+
+
+def Check_os():
+    """
+    Check the operating system and return its name.
+
+    Returns:
+        str: The name of the operating system (e.g., "Linux", "macOS", "Windows", "Termux (Android)", or "Unknown OS").
+    """
+    os_name = platform.system()
+    match os_name:
+        case "Linux":
+            # Check for Termux by looking for the presence of the 'termux' directory
+            if os.path.exists("/data/data/com.termux"):
+                return "Termux (Android)"
+            else:
+                return "Linux"
+        case "Darwin":
+            return "macOS"
+        case "Windows":
+            return "Windows"
+        case _:
+            return "Unknown OS"
+
+
+def mobject_to_text(mobject: Mobject) -> str():
+    # Tex() or MathTex()
+    if hasattr(mobject, "get_tex_string"):
+        mobject = mobject.get_tex_string()
+    # Text
+    elif hasattr(mobject, "original_text"):
+        mobject = mobject.original_text
+    # Paragraph
+    elif hasattr(mobject, "lines_text"):
+        mobject = mobject.lines_text.original_text
+    else:
+        mobject = str(mobject)
+    return mobject
+
+
+def text_and_mobject(text: str, mobject: Mobject, **kwargs) -> tuple():
+
+    match [text, mobject]:
+        case [None, Mobject()]:
+            text = mobject_to_text(mobject)
+            mobject = (
+                mobject.get_file_path() if hasattr(mobject, "get_file_path") else None
+            )
+        case [str(), Mobject()]:
+            mobject = (
+                mobject.get_file_path() if hasattr(mobject, "get_file_path") else None
+            )
+        case [None, str()]:
+            text = mobject
+            mobject = mobject if os.path.exists(mobject) else None
+        case [Mobject(), None] | [Mobject(), str()] | [str(), None]:
+            return text_and_mobject(mobject, text)
+        case _:
+            return None
+
+    return text, mobject
 
 
 def msg_box(msg, indent=1, width=None, title=None):
-    """Print message-box with optional title."""
+    """
+    Create a message box with optional title and indentation.
+
+    Args:
+        msg (str): The message to display in the box.
+        indent (int): The number of spaces to indent the message (default is 1).
+        width (int, optional): The width of the message box. If None, it will be determined based on the message length.
+        title (str, optional): The title of the message box.
+
+    Returns:
+        str: A formatted string representing the message box.
+    """
     # Wrap lines that are longer than 80 characters
     if width is None and len(msg) > 80:
         width = 80
@@ -34,7 +107,18 @@ def msg_box(msg, indent=1, width=None, title=None):
 
 
 def append_to_json_file(json_file: str, data: dict, voice_id: int = -1, **kwargs):
-    """Append data to json file"""
+    """
+    Append data to a JSON file. If the file does not exist, it will be created.
+
+    Args:
+        json_file (str): The path to the JSON file.
+        data (dict): The data to append to the JSON file.
+        voice_id (int, optional): The index of the voice data to update (default is -1, which appends).
+        **kwargs: Additional keyword arguments (not used in this function).
+
+    Raises:
+        ValueError: If the JSON file does not contain a list.
+    """
     # This cache.json file is not exist and Create cache.json file and append
     if not os.path.exists(json_file):
         with open(json_file, "w") as f:
@@ -56,8 +140,7 @@ def append_to_json_file(json_file: str, data: dict, voice_id: int = -1, **kwargs
                 return
             elif isinstance(cache_json_data.get("original_audio"), str):
                 final_audio = cache_json_data.get("original_audio")
-                final_audio = "{}/{}".format(
-                    os.path.dirname(json_file), final_audio)
+                final_audio = "{}/{}".format(os.path.dirname(json_file), final_audio)
                 if os.path.exists(final_audio):
                     os.remove(final_audio)
 
@@ -72,10 +155,22 @@ def append_to_json_file(json_file: str, data: dict, voice_id: int = -1, **kwargs
 
 
 def create_dotenv_file(required_variable_names: list, dotenv=".env"):
-    """Create a .env file with the required variables"""
+    """
+    Create a .env file with the required environment variables.
+
+    Args:
+        required_variable_names (list): A list of variable names to include in the .env file.
+        dotenv (str, optional): The name of the .env file to create (default is ".env").
+
+    Returns:
+        bool: True if the .env file was created, False if it was skipped.
+    """
     if os.path.exists(dotenv):
         logger.info(
-            "File {} already exists. Would you like to overwrite it? [Y/n]".format(dotenv))
+            "File {} already exists. Would you like to overwrite it? [Y/n]".format(
+                dotenv
+            )
+        )
         answer = input()
         if answer.lower() == "n":
             logger.info("Skipping .env file creation...")

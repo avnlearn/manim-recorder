@@ -1,9 +1,10 @@
+"""
+GUI Recorder
+"""
+
 import sys
-import os
 import datetime
-import threading
-import multiprocessing
-from PySide6.QtGui import QIcon, QPalette
+from PySide6.QtGui import QIcon, QPalette, QColor
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -13,40 +14,73 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QWidget,
     QMessageBox,
-    QComboBox, QStyle,
-    QHBoxLayout, QStatusBar,
-    QSizePolicy
+    QComboBox,
+    QStyle,
+    QHBoxLayout,
+    QStatusBar,
+    QSizePolicy,
+    QButtonGroup,
+    QProgressBar,
 )
+import numpy as np
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSize
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtSvg import QSvgRenderer
-
-from manim_recorder.multimedia import Pyaudio_Recorder
+import pyqtgraph as pg
+from manim_recorder.multimedia import PyAudio_
 from manim_recorder.recorder.gui.util import Run_Audacity
+from manim_recorder.recorder.gui.ui import (
+    create_label,
+    Create_Button,
+    WindowCenter,
+    SVG_Viewer,
+    SVG_Icon,
+)
 
 
 class Recorder(QMainWindow):
+    """
+    A class to represent an audio recorder application using PySide6.
+
+    Attributes:
+        recorder_service: An instance of the audio recording service.
+        msg: A message to display in the UI.
+        File_Saved: A boolean indicating if the audio file has been saved.
+    """
+
     def __init__(
         self,
         msg: str = "Start",
-        recorder_service=Pyaudio_Recorder(),
+        recorder_service=PyAudio_(),
         parent=None,
-        **kwargs
+        **kwargs,
     ):
+        """
+        Initializes the Recorder application.
+
+        Args:
+            msg (str): The initial message to display.
+            recorder_service: An instance of the audio recording service.
+            parent: The parent widget.
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(parent)
-        self.DEFAULT_SVG = os.path.join(
-            os.path.dirname(__file__), "assets/Mic.svg")
         self.initUI()
         self.recorder_service = recorder_service
         self.msg = msg
         self.File_Saved = False
         self.populate_device_list()
+        self.waveform_chart_timer = pg.QtCore.QTimer()
+        self.waveform_chart_timer.timeout.connect(self.update_plot)
+        self.progress_timer = QTimer(self)
+        self.progress_timer.timeout.connect(self.update_progress_bar)
 
     def initUI(self):
+        """Initializes the user interface components."""
         self.setWindowTitle("Audio Recorder")
         self.setGeometry(100, 100, 500, 400)
-        self.center()
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
+        WindowCenter(self, onTop=True)
+
         layout = QVBoxLayout()
 
         # Device Index List
@@ -54,79 +88,132 @@ class Recorder(QMainWindow):
         self.device_combo.currentIndexChanged.connect(self.set_device_index)
         layout.addWidget(self.device_combo)
 
-        # Script
+        # Speech Script Section
+        message_layout = QVBoxLayout()
 
-        self.speech_script_label = QLabel("Speech Script", self)
-        self.speech_script_label.setAlignment(Qt.AlignLeft)
-        self.speech_script_label.setWordWrap(True)
-        layout.addWidget(self.speech_script_label)
-        self.speech_script_label.setStyleSheet(
-            "font-weight:bold; font-size: 20px;")
+        self.message_object = SVG_Viewer(svg_file=SVG_Icon["MIC"])
 
-        self.message_object = QSvgWidget()
-        
+        message_layout.addWidget(
+            self.message_object, alignment=Qt.AlignCenter, stretch=1
+        )
 
-        # Set size policy to allow the widget to expand
-        self.message_object.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.setSvg_Size(self.DEFAULT_SVG)
-        self.message_object.load(self.DEFAULT_SVG)
-        layout.addWidget(self.message_object, alignment=Qt.AlignCenter)
+        # Message Display
+        self.message_label = create_label(
+            "Message", "color:orange; font-size: 15px", align="c", wordwrap=True
+        )
+        message_layout.addWidget(self.message_label)
+        layout.addLayout(message_layout)
 
-        # Message
-        self.massage_label = QLabel("Message", self)
-        self.massage_label.setAlignment(Qt.AlignCenter)
-        self.massage_label.setWordWrap(True)
-        layout.addWidget(self.massage_label)
-        self.massage_label.setStyleSheet("color:orange;")
-        self.massage_label.setStyleSheet("font-size: 15px;")
+        # Waveform Chart
+        self.plot_widget = pg.PlotWidget(background="white")
+        self.plot_widget.setYRange(-1, 1)
+        layout.addWidget(self.plot_widget)
+        self.plot_widget.setBackground(
+            QColor(255, 255, 255, 0)  # White with 0% opacity
+        )
+        self.plot_widget.getAxis("left").setVisible(False)
+        self.plot_widget.getAxis("bottom").setVisible(False)
+        self.plot_widget.setMenuEnabled(False)
+        self.plot_widget.setMouseTracking(False)
 
-        rec_layout = QHBoxLayout()
-        # Recording Button
-        self.recording_button = QPushButton("Start Recording")
-        self.recording_button.setShortcut("r")
-        self.recording_button.clicked.connect(self.toggle_recording)
-        rec_layout.addWidget(self.recording_button)
-        # Get the theme icon for the standard "SP_MediaPlay" (play button) icon
-        icon = self.style().standardIcon(QStyle.SP_MediaPlay)
-        self.recording_button.setIcon(icon)
+        # Recording Timer Display
+        self.recording_timer_label = create_label(
+            "00:00:00", "font-size: 30px;", align="c"
+        )
+        layout.addWidget(self.recording_timer_label)
 
-        # Recording Timer
-        self.recording_timer_label = QLabel("00:00:00")
-        self.recording_timer_label.setAlignment(Qt.AlignCenter)
-        rec_layout.addWidget(self.recording_timer_label)
-        self.recording_timer_label.setStyleSheet("font-size: 30px;")
-        self.recording_timer = QTimer()
-        self.recording_timer.timeout.connect(self.update_time)
-        layout.addLayout(rec_layout)
+        # Media Control Buttons
+        media_layout = QHBoxLayout()
+        self.pause_button = Create_Button(
+            icon=self.style().standardIcon(QStyle.SP_MediaPause),
+            func=self.__pause,
+            stylesheet="modern",
+            disable=True,
+        )
+        self.play_button = Create_Button(
+            icon=self.style().standardIcon(QStyle.SP_MediaPlay),
+            func=self.__play,
+            stylesheet="modern",
+            disable=True,
+        )
+        self.stop_button = Create_Button(
+            icon=self.style().standardIcon(QStyle.SP_MediaStop),
+            func=self.__stop,
+            stylesheet="modern",
+            disable=True,
+        )
+        self.rec_button = Create_Button(
+            icon=QIcon(SVG_Icon["MIC"]),
+            stylesheet="modern",
+            func=self.__rec,
+        )
+        self.save_button = Create_Button(
+            icon=self.style().standardIcon(QStyle.SP_DialogSaveButton),
+            stylesheet="modern",
+            func=self.save_audio,
+            disable=True,
+        )
+        media_layout.addWidget(self.pause_button)
+        media_layout.addWidget(self.play_button)
+        media_layout.addWidget(self.stop_button)
+        media_layout.addWidget(self.rec_button)
+        media_layout.addWidget(self.save_button)
 
-        m_layout = QHBoxLayout()
+        layout.addLayout(media_layout)
 
-        # Playback Button
-        self.playback_button = QPushButton("Play")
-        self.playback_button.clicked.connect(self.toggle_playback)
-        m_layout.addWidget(self.playback_button)
-        self.playback_button.setDisabled(True)
+        # Progress Bar
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setAlignment(Qt.AlignCenter)
+        self.progress_bar.setRange(0, 100)  # Set range from 0 to 100
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setStyleSheet(
+            """
+            QProgressBar {
+                border: 2px solid #555;
+                border-radius: 5px;
+                height: 0.5em;
+                background-color: #e0e0e0;
+            }
+            QProgressBar::chunk {
+                background-color: #76c7c0;
+                border-radius: 5px;
+            }
+        """
+        )
+        layout.addWidget(self.progress_bar)
 
-        # Player Timer
-        self.duration_label = QLabel("00:00:00")
-        self.duration_label.setAlignment(Qt.AlignCenter)
-        m_layout.addWidget(self.duration_label)
-        self.duration_label.setStyleSheet("font-size: 30px;")
+        # Additional Features Layout
+        feature_layout = QHBoxLayout()
 
-        # Accept Button > Save
-        self.save_button = QPushButton("Accept")
-        self.save_button.clicked.connect(self.save_audio)
-        m_layout.addWidget(self.save_button)
-        self.save_button.setDisabled(True)
-        layout.addLayout(m_layout)
-        # Run Audacity
+        # Run Audacity Button
+        self.audacity_button = Create_Button(
+            "Run Audacity",
+            lambda: Run_Audacity(self.recorder_service.__str__()),
+            stylesheet="modern",
+            disable=True,
+        )
+        feature_layout.addWidget(self.audacity_button)
 
-        # h_layout = QHBoxLayout()
-        # self.audacity_button = QPushButton("Run Audacity")
-        # self.audacity_button.clicked.connect(lambda: Run_Audacity(self.recorder_service.__str__()))
-        # h_layout.addWidget(self.audacity_button)
-        # layout.addLayout(h_layout)
-        # Status Button
+        # Skip Button
+        self.accept_button = Create_Button(
+            "Skip",
+            stylesheet="modern",
+            func=self.close,
+            disable=True,
+        )
+        feature_layout.addWidget(self.accept_button)
+
+        # Accept Button
+        self.accept_button = Create_Button(
+            "Accept",
+            stylesheet="modern",
+            func=self.close,
+            disable=True,
+        )
+        feature_layout.addWidget(self.accept_button)
+        layout.addLayout(feature_layout)
+
+        # Status Bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
@@ -134,109 +221,140 @@ class Recorder(QMainWindow):
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-    def center(self):
-        # Get the screen geometry using QScreen
-        screen_geometry = self.screen().availableGeometry()
-        # Get the window geometry
-        window_geometry = self.geometry()
-
-        # Calculate the center position
-        x = (screen_geometry.width() - window_geometry.width()) // 2
-        y = (screen_geometry.height() - window_geometry.height()) // 2
-
-        # Move the window to the center
-        self.move(x, y)
-
-    def setSvg_Size(self, svg_path):
-        renderer = QSvgRenderer(svg_path)
-        
-        original_size = renderer.defaultSize()
-        # original_size.setHeight(original_size.height() * 20)
-        # original_size.setWidth(original_size.width() * 20)
-        # Set the size of the QSvgWidget to the original size
-        self.message_object.setFixedSize(original_size)
+        self.curve = self.plot_widget.plot(pen="g")
 
     def populate_device_list(self):
+        """Populates the device combo box with available audio devices."""
         self.device_combo.addItems(self.recorder_service.get_devices_name())
 
     def set_device_index(self, index):
+        """
+        Sets the currently selected device index and updates the status bar.
+
+        Args:
+            index: The index of the selected device.
+        """
         self.status_bar.showMessage("Device: {}".format(index))
         self.device_index = self.device_combo.itemData(index)
 
     def start_timer(self):
-        # Timer will trigger every 1000 ms (1 second)
-        self.recording_timer.start(100)
+        """Starts the timer for updating the waveform chart."""
+        self.waveform_chart_timer.start(50)  # Update plot every 50 ms
 
     def stop_timer(self):
-        self.recording_timer.stop()
+        """Stops the timer for updating the waveform chart."""
+        self.waveform_chart_timer.stop()
 
     def reset_timer(self):
+        """Resets the recording timer display."""
         self.stop_timer()  # Stop the timer if it's running
-        self.recording_timer_label.setText("00:00:00")  # Reset display
+        self.recording_timer_label.reset()  # Reset display
 
-    def update_time(self):
-        self.recording_timer_label.setText(
-            self.recorder_service.format_duration())
+    def update_plot(self):
+        """Updates the waveform plot with the latest audio data."""
+        if self.recorder_service.frames:
+            # Convert the last chunk of frames to numpy array
+            data = np.frombuffer(self.recorder_service.frames[-1], dtype=np.int16)
+            data = data / 32768.0  # Normalize to [-1, 1]
 
-    def toggle_recording(self):
-        if not self.recorder_service.is_recording:
-            self.start_recording()
-            self.playback_button.setDisabled(True)
-            self.save_button.setDisabled(True)
-            self.start_timer()
-            if self.recorder_service.is_playing:
-                self.recorder_service.stop_playback()
+            # time = np.linspace(
+            #     self.recorder_service.get_recording_duration() - 1,
+            #     self.recorder_service.get_recording_duration(),
+            #     num=len(data),
+            # )
+
+            self.curve.setData(data)
+
+            self.recording_timer_label.setText(
+                self.recorder_service.get_recording_format_duration()
+            )
+
+    def update_progress_bar(self):
+        """Updates the progress bar based on the current playback status."""
+        if self.recorder_service.is_playing:
+            # current_duration = (
+            #     self.recorder_service.get_recording_duration()
+            # )  # Total duration in seconds
+            total_frames = len(self.recorder_service.frames)  # Total frames recorded
+            if total_frames > 0:
+                current_frame = (
+                    self.recorder_service.current_playback_frame_index
+                )  # This should be updated during playback
+                progress = (
+                    current_frame / total_frames
+                ) * 100  # Calculate progress percentage
+                self.progress_bar.setValue(progress)  # Update the progress bar
+
+                if current_frame >= total_frames:
+                    self.__stop()  # Automatically stop playback if the end is reached
+                    self.progress_bar.setValue(100)  # Set progress bar to 100%
         else:
-            self.stop_recording()
-            self.playback_button.setDisabled(False)
-            self.save_button.setDisabled(False)
-            self.duration_label.setText(
-                self.recorder_service.format_duration())
+            self.progress_timer.stop()  # Stop the timer if not playing
+            self.__stop()
+
+    def __pause(self):
+        """Pauses the audio recording if currently recording."""
+        if self.recorder_service.is_recording:
+            self.recorder_service.pause_recording()
+
+    def __play(self):
+        """Starts playback of the recorded audio."""
+        if (
+            not self.recorder_service.is_playing
+            and not self.recorder_service.is_recording
+        ):
+            self.recorder_service.play_playback()
+            self.play_button.setDisabled(True)
+            self.stop_button.setDisabled(False)
+            self.pause_button.setDisabled(False)
+            self.rec_button.setDisabled(True)
+            # Start the progress bar timer
+            self.progress_timer.start(100)  # Update every 100 ms
+            self.progress_bar.setValue(0)
+
+    def __stop(self):
+        """Stops the audio recording or playback."""
+        if self.recorder_service.is_recording:
+            self.status_bar.showMessage("Status: Re-recording")
+            self.recorder_service.stop_recording()
             self.stop_timer()
+        elif self.recorder_service.is_playing:
+            self.recorder_service.stop_playback()
+        self.stop_button.setDisabled(True)
+        self.pause_button.setDisabled(True)
+        self.play_button.setDisabled(False)
+        self.rec_button.setDisabled(False)
+        self.save_button.setDisabled(False)
+        self.accept_button.setDisabled(False)
 
-    def start_recording(self):
-        self.recording_timer_label.setText("00:00:00")
-        self.recording_button.setText("Stop Recording")
-        self.recording_button.setStyleSheet(
-            "background-color: red; color: white;")
-        self.status_bar.showMessage("Status : Recording ...")
-        self.recorder_service.set_device_index(self.device_index)
-        self.recorder_service.set_channels(self.device_index)
-        self.recorder_service.start_recording()
+    def __rec(self):
+        """Starts audio recording."""
+        if not self.recorder_service.is_recording:
+            self.status_bar.showMessage("Status : Recording ...")
+            self.rec_button.setDisabled(True)
+            self.play_button.setDisabled(True)
+            self.save_button.setDisabled(True)
+            self.pause_button.setDisabled(False)
+            self.stop_button.setDisabled(False)
 
-    def stop_recording(self):
-        self.recording_button.setText("re-Recording")
-        self.recording_button.setStyleSheet(
-            "background-color: black; color: white;")
-        self.status_bar.showMessage("Status: Re-recording")
-        self.recorder_service.stop_recording()
-
-    def toggle_playback(self):
-        if not self.recorder_service.is_playing and not self.recorder_service.is_recording:
-            self.play_playback()
-            self.recording_button.setDisabled(True)
-        else:
-            self.stop_playback()
-            self.recording_button.setDisabled(False)
-
-    def play_playback(self):
-        self.playback_button.setText("Stop Playback")
-        self.playback_button.setStyleSheet(
-            "background-color: red; color: white;")
-        self.status_bar.showMessage("Status: Started Recording Listening ...")
-        self.recorder_service.play_playback()
-
-    def stop_playback(self):
-        self.playback_button.setText("Start Playback")
-        self.playback_button.setStyleSheet("")
-        self.status_bar.showMessage("Status: Stopped Recording Listening ...")
-        self.recorder_service.stop_playback()
+            self.recorder_service.set_device_index(self.device_index)
+            self.recorder_service.set_channels(self.device_index)
+            self.recorder_service.start_recording()
+            self.recording_timer_label.reset()
+            self.start_timer()
 
     def get_audio_basename(self) -> str:
+        """
+        Generates a unique audio file name based on the current date and time.
+
+        Returns:
+            str: The generated audio file name.
+        """
         now = datetime.datetime.now()
         return "Voice_{}".format(now.strftime("%d%m%Y_%H%M%S"))
 
     def save_audio(self):
+        """Saves the recorded audio to a file."""
         if self.recorder_service.is_recording:
             self.recorder_service.stop_recording()
         if self.recorder_service.is_playing:
@@ -244,63 +362,98 @@ class Recorder(QMainWindow):
         if self.recorder_service.frames:
             self.recorder_service.save_recording()
             self.File_Saved = True
-            self.close()
+            self.audacity_button.setDisabled(False)
         else:
-            self.show_message("No Recording", "Plase before save file")
+            self.show_message("No Recording", "Please record before saving the file.")
 
     def show_message(self, title, message):
+        """
+        Displays a message box with the specified title and message.
+
+        Args:
+            title: The title of the message box.
+            message: The message to display.
+
+        Returns:
+            int: The button clicked by the user.
+        """
         msg_box = QMessageBox(self)
         msg_box.setWindowTitle(title)
         msg_box.setText(message)
-        # You can change the icon type
         msg_box.setIcon(QMessageBox.Information)
         msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         return msg_box.exec()  # Show the message box
 
     def closeEvent(self, event):
+        """Handles the close event of the main window."""
         if not self.File_Saved:
-            if self.show_message("Confirmation", "Do you save audio file?") == QMessageBox.Yes:
+            if (
+                self.show_message("Confirmation", "Do you want to save the audio file?")
+                == QMessageBox.Yes
+            ):
                 self.save_audio()
-        # self.recorder_service.frames = []
         event.accept()  # Accept the event to close the window
 
     def resetUI(self):
+        """Resets the user interface to its initial state."""
         self.File_Saved = False
-        self.massage_label.setText("Message")
-        self.speech_script_label.setText("Speech Script")
-        self.duration_label.setText("")
-        self.reset_timer()
-        self.recording_button.setText("Start Recording")
-        self.recording_button.setStyleSheet("")
-        self.status_bar.clearMessage()
+        self.message_label.reset()  # Clear message label
+        self.recording_timer_label.reset()  # Reset timer display
+        self.progress_bar.setValue(0)  # Reset progress bar
+        self.status_bar.clearMessage()  # Clear status bar message
 
-        # self.message_object.load(self.DEFAULT_SVG)
-        # self.setSvg_Size(self.DEFAULT_SVG)
+        # Enable/disable buttons to their original state
+        self.pause_button.setDisabled(True)
+        self.play_button.setDisabled(False)
+        self.stop_button.setDisabled(True)
+        self.rec_button.setDisabled(False)
+        self.save_button.setDisabled(True)
+        self.accept_button.setDisabled(True)
+        self.audacity_button.setDisabled(True)
+        self.message_object.reset()
+        # Clear the waveform plot
+        self.curve.setData([])  # Clear the plot data
 
-    def record(self, path: str = None, msg: str = None, voice_id: int = None, svg_path: any = None, **kwargs):
+    def record(
+        self,
+        path: str = None,
+        msg: str = None,
+        voice_id: int = None,
+        svg_path: any = None,
+        **kwargs,
+    ):
+        """
+        Prepares the recorder for a new recording session.
+
+        Args:
+            path (str): The file path to save the recording.
+            msg (str): The message to display in the UI.
+            voice_id (int): An identifier for the voice.
+            svg_path: The path to the SVG file to display.
+            **kwargs: Additional keyword arguments.
+        """
         self.resetUI()
         if path is not None:
             self.recorder_service.set_filepath(path)
         if svg_path is not None:
             svg_path = str(svg_path)
-            self.message_object.setStyleSheet("background-color: white; padding: 20px;")
-            self.message_object.load(svg_path)
-            self.setSvg_Size(svg_path)
+            # self.message_object.setStyleSheet("background-color: white; padding: 20px;")
+            self.message_object.load_svg(svg_path)
+            # self.setSvg_Size(svg_path)
 
         if msg is not None:
-            self.massage_label.setText(msg)
+            self.message_label.setText(msg)
         if voice_id is not None:
-            self.speech_script_label.setText("Sound ID : {}".format(voice_id))
+            self.setWindowTitle("Sound ID : {}".format(voice_id))
+            # self.speech_script_label.setText("Sound ID : {}".format(voice_id))
 
         self.show()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    audiorecoder = Pyaudio_Recorder()
+    audiorecoder = PyAudio_()
     recorder = Recorder(audiorecoder)
-    recorder.record(path=recorder.get_audio_basename() +
-                    ".wav", msg="Start Recording")
+    recorder.record(path=recorder.get_audio_basename() + ".wav", msg="Start Recording")
     recorder.show()
-    # audiorecoder.close()
     sys.exit(app.exec())

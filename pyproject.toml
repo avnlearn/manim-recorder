@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "manim-recorder"
-version = "0.2.2"
+version = "0.2.3"
 description = "Manim plugin for recorder"
 authors = ["AvN Learn <avnlearn@gmail.com>"]
 license = "MIT"
@@ -31,6 +31,7 @@ mutagen = "^1.47.0"
 PyAudio = "^0.2.14"
 pyside6 = "^6.7.2"
 bottle = "^0.12.25"
+pyqtgraph = "^0.13.7"
 
 [tool.poetry.extras]
 termux = []
