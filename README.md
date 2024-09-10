@@ -2,8 +2,11 @@
 
 ## GUI (Using PySide6)
 
-![GUI Recorder](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording.png?raw=true)
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_001-0.2.3.png?raw=true)
 
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_002-0.2.3.png?raw=true)
+
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_003-0.2.3.png?raw=true)
 
 ```python
 from manim import *
@@ -67,6 +70,40 @@ class VoiceRecorder(RecorderScene):
                       run_time=tracker.duration)
 
         with self.voiceover(text="Thank you for watching.") as tracker:
+            self.play(Uncreate(circle))
+
+        self.wait()
+```
+
+## Termux Cli
+
+```python
+from manim import *
+from manim_recorder.voiceover_scene import RecorderScene
+from manim_recorder.recorder.termux import RecorderService
+from pathlib import Path
+
+
+class Recordering(RecorderScene):
+    def construct(self):
+        self.set_speech_service(
+            RecorderService(
+            )
+        )
+
+        circle = Circle()
+        square = Square().shift(2 * RIGHT)
+        with self.voiceover(text="This circle is drawn as I speak.") as tracker:
+            self.play(Create(circle), run_time=tracker.duration)
+
+        # with self.voiceover("This circle is drawn as I speak.") as tracker:
+        #     self.safe_wait(tracker.duration)
+
+        with self.voiceover(text="Let's shift it to the left 2 units.") as tracker:
+            self.play(circle.animate.shift(2 * LEFT),
+                      run_time=tracker.duration)
+
+        with self.voiceover(text="Thank you for watching."):
             self.play(Uncreate(circle))
 
         self.wait()
