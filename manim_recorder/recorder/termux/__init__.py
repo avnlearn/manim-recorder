@@ -1,5 +1,5 @@
 from pathlib import Path
-from manim_recorder.helper import msg_box
+from manim_recorder.helper import msg_box, get_audio_basename
 from manim_recorder.recorder.base import SpeechService
 from manim import logger
 from manim_recorder.recorder.termux.cli import Recorder
@@ -64,7 +64,7 @@ class RecorderService(SpeechService):
         if cached_result is not None:
             return cached_result
 
-        audio_path = self.get_audio_basename() + ".m4a" if path is None else path
+        audio_path = get_audio_basename() + ".m4a" if path is None else path
         box = msg_box("Voiceover:\n\n" + text)
         self.recorder.record(str(Path(cache_dir) / audio_path), box)
         json_dict = {

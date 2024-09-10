@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from manim_recorder.helper import msg_box
+from manim_recorder.helper import msg_box, get_audio_basename
 from manim_recorder.recorder.base import AudioService
 from manim import logger
 
@@ -50,7 +50,7 @@ class RecorderService(AudioService):
         if cached_result is not None:
             return cached_result
 
-        audio_path = self.get_audio_basename() + ".wav" if path is None else path
+        audio_path = get_audio_basename() + ".wav" if path is None else path
         self.app.record(str(Path(cache_dir) / audio_path), text)
         self.app.run()
         

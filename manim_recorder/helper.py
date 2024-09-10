@@ -5,6 +5,7 @@ Helper for manim-recorder
 import json
 import os
 import textwrap
+import datetime
 import platform  # Added import for platform
 from manim import logger, Mobject
 
@@ -30,6 +31,17 @@ def Check_os():
             return "Windows"
         case _:
             return "Unknown OS"
+
+
+def get_audio_basename() -> str:
+    """
+    Generates a unique audio file name based on the current date and time.
+
+    Returns:
+        str: The generated audio file name.
+    """
+    now = datetime.datetime.now()
+    return "Voice_{}".format(now.strftime("%d%m%Y_%H%M%S"))
 
 
 def mobject_to_text(mobject: Mobject) -> str():

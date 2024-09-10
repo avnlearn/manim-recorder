@@ -9,6 +9,8 @@ from PySide6.QtGui import (
     QFont,
     QWheelEvent,
     QTransform,
+    QShortcut,
+    QKeySequence,
 )
 from PySide6.QtWidgets import (
     QApplication,
@@ -143,6 +145,7 @@ class Create_Button(QPushButton):
         shortcut: str = None,
         stylesheet: str = "",
         disable=False,
+        toolTip=None,
         **kwargs,
     ):
         """Initializes a Create_Button with customizable properties.
@@ -175,6 +178,9 @@ class Create_Button(QPushButton):
 
         if shortcut:
             self.setShortcut(shortcut)
+
+        if toolTip:
+            self.setToolTip(toolTip)
 
         # Set the stylesheet
         self.setStyle(stylesheet)
@@ -352,3 +358,9 @@ class SVG_Viewer(QSvgWidget):
         painter.setClipRect(svg_rect)  # Set the clipping rectangle for the SVG
 
         super().paintEvent(event)  # Call the base class implementation
+
+
+def setup_shortcuts(parent, keys):
+    """Sets up keyboard shortcuts for the application."""
+    for key in keys:
+        QShortcut(QKeySequence(key), parent, keys[key])

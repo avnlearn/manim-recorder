@@ -3,7 +3,9 @@ GUI Recorder
 """
 
 import sys
+import os
 import datetime
+import logging
 from PySide6.QtGui import QIcon, QPalette, QColor, QShortcut, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -28,14 +30,16 @@ from PySide6.QtSvg import QSvgRenderer
 import pyqtgraph as pg
 from manim_recorder.multimedia import PyAudio_
 from manim_recorder.recorder.gui.util import Run_Audacity
-from manim_recorder.recorder.gui.ui import (
+from manim_recorder.recorder.gui.config import (
     create_label,
     Create_Button,
     WindowCenter,
     SVG_Viewer,
     SVG_Icon,
     show_message,
+    setup_shortcuts,
 )
+from manim_recorder.helper import get_audio_basename
 
 
 class Recorder(QMainWindow):
@@ -53,6 +57,7 @@ class Recorder(QMainWindow):
         msg: str = "Start",
         recorder_service=PyAudio_(),
         parent=None,
+        communicator=None,
         **kwargs,
     ):
         """
@@ -74,6 +79,9 @@ class Recorder(QMainWindow):
         self.waveform_chart_timer.timeout.connect(self.update_plot)
         self.progress_timer = QTimer(self)
         self.progress_timer.timeout.connect(self.update_progress_bar)
+        self.communicator = communicator
+        if self.communicator:
+            self.communicator.recorder_data.connect(self._recorder)
 
     def initUI(self):
         """Initializes the user interface components."""
@@ -129,34 +137,37 @@ class Recorder(QMainWindow):
             func=self.__pause,
             stylesheet="modern",
             disable=True,
+            toolTip="Pause",
         )
-        self.pause_button.setToolTip("Pause")
         self.play_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaPlay),
             func=self.__play,
             stylesheet="modern",
             disable=True,
+            toolTip="Play",
         )
-        self.play_button.setToolTip("Play")
         self.stop_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaStop),
             func=self.__stop,
             stylesheet="modern",
             disable=True,
+            toolTip="Stop",
         )
         self.rec_button = Create_Button(
             icon=QIcon(SVG_Icon["MIC"]),
             stylesheet="modern",
             func=self.__rec,
+            toolTip="Recording",
         )
-        self.rec_button.setToolTip("Recording")
+
         self.save_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_DialogSaveButton),
             stylesheet="modern",
             func=self.save_audio,
             disable=True,
+            toolTip="Save",
         )
-        self.save_button.setToolTip("Save")
+
         media_layout.addWidget(self.pause_button)
         media_layout.addWidget(self.play_button)
         media_layout.addWidget(self.stop_button)
@@ -195,50 +206,43 @@ class Recorder(QMainWindow):
             lambda: Run_Audacity(self.recorder_service.__str__()),
             stylesheet="modern",
             disable=True,
+            toolTip="Audacity Run",
         )
-        self.audacity_button.setToolTip("Audacity Run")
         feature_layout.addWidget(self.audacity_button)
 
         # Accept Button
         self.accept_button = Create_Button(
-            "Accept",
+            "Next",
             stylesheet="modern",
-            func=self.close,
+            func=self._next,
             disable=True,
+            toolTip="Accept and Next",
         )
-        self.accept_button.setToolTip("Accept and Exit")
+
         feature_layout.addWidget(self.accept_button)
         layout.addLayout(feature_layout)
 
         # Status Bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
+        # self.status_bar.setStyleSheet("color:red;")
+        self.status_bar.showMessage("Loading ...")
 
         container = QWidget()
         container.setLayout(layout)
         self.setCentralWidget(container)
-        self.setup_shortcuts()
+        setup_shortcuts(
+            self,
+            {
+                "r": self.__rec,
+                "s": self.__stop,
+                "p": self.__play,
+                "t": self.__pause,
+                "Ctrl+S": self.save_audio,
+                "Ctrl+Q": self.close,
+            },
+        )
         self.curve = self.plot_widget.plot(pen="g")
-
-    def setup_shortcuts(self):
-        """Sets up keyboard shortcuts for the application."""
-        # Shortcut for starting recording
-        QShortcut(QKeySequence("r"), self, self.__rec)
-
-        # Shortcut for stopping recording or playback
-        QShortcut(QKeySequence("s"), self, self.__stop)
-
-        # Shortcut for playing audio
-        QShortcut(QKeySequence("p"), self, self.__play)
-
-        # Shortcut for pausing audio
-        QShortcut(QKeySequence("t"), self, self.__pause)
-
-        # Shortcut for saving audio
-        QShortcut(QKeySequence("Ctrl+s"), self, self.save_audio)
-
-        # Shortcut for accepting and closing the application
-        QShortcut(QKeySequence("Ctrl+q"), self, self.close)
 
     def populate_device_list(self):
         """Populates the device combo box with available audio devices."""
@@ -312,7 +316,15 @@ class Recorder(QMainWindow):
     def __pause(self):
         """Pauses the audio recording if currently recording."""
         if self.recorder_service.is_recording:
-            self.recorder_service.pause_recording()
+            if not self.recorder_service.is_paused:
+                self.recorder_service.pause_recording()
+            else:
+                self.recorder_service.resume_recording()
+        elif self.recorder_service.is_playing:
+            if not self.recorder_service.playback_paused:
+                self.recorder_service.pause_playback()
+            else:
+                self.recorder_service.resume_playback()
 
     def __play(self):
         """Starts playback of the recorded audio."""
@@ -360,15 +372,23 @@ class Recorder(QMainWindow):
             self.recording_timer_label.reset()
             self.start_timer()
 
-    def get_audio_basename(self) -> str:
-        """
-        Generates a unique audio file name based on the current date and time.
-
-        Returns:
-            str: The generated audio file name.
-        """
-        now = datetime.datetime.now()
-        return "Voice_{}".format(now.strftime("%d%m%Y_%H%M%S"))
+    def _next(self):
+        if not self.File_Saved:
+            if (
+                show_message("Confirmation", "Do you want to save the audio file?")
+                == QMessageBox.Yes
+            ):
+                self.save_audio()
+        if self.communicator:
+            self.communicator.accept.emit(self.recorder_service.__str__())
+        self.pause_button.setDisabled(True)
+        self.play_button.setDisabled(True)
+        self.stop_button.setDisabled(True)
+        self.rec_button.setDisabled(True)
+        self.save_button.setDisabled(True)
+        self.accept_button.setDisabled(True)
+        self.audacity_button.setDisabled(True)
+        self.status_bar.showMessage("Loading ...")
 
     def save_audio(self):
         """Saves the recorded audio to a file."""
@@ -383,16 +403,6 @@ class Recorder(QMainWindow):
         else:
             show_message("No Recording", "Please record before saving the file.")
 
-    def closeEvent(self, event):
-        """Handles the close event of the main window."""
-        if not self.File_Saved:
-            if (
-                show_message("Confirmation", "Do you want to save the audio file?")
-                == QMessageBox.Yes
-            ):
-                self.save_audio()
-        event.accept()  # Accept the event to close the window
-
     def resetUI(self):
         """Resets the user interface to its initial state."""
         self.File_Saved = False
@@ -400,7 +410,7 @@ class Recorder(QMainWindow):
         self.recording_timer_label.reset()  # Reset timer display
         self.progress_bar.setValue(0)  # Reset progress bar
         self.status_bar.clearMessage()  # Clear status bar message
-
+        self.recorder_service.frames = []
         # Enable/disable buttons to their original state
         self.pause_button.setDisabled(True)
         self.play_button.setDisabled(False)
@@ -413,47 +423,33 @@ class Recorder(QMainWindow):
         # Clear the waveform plot
         self.curve.setData([])  # Clear the plot data
 
-    def record(
+    def _recorder(
         self,
         path: str = None,
         msg: str = None,
         voice_id: int = None,
-        svg_path: any = None,
-        show: bool = True,
-        **kwargs,
+        mobject: str = None,
     ):
-        """
-        Prepares the recorder for a new recording session.
 
-        Args:
-            path (str): The file path to save the recording.
-            msg (str): The message to display in the UI.
-            voice_id (int): An identifier for the voice.
-            svg_path: The path to the SVG file to display.
-            **kwargs: Additional keyword arguments.
-        """
         self.resetUI()
         if path is not None:
             self.recorder_service.set_filepath(path)
-        if svg_path is not None:
-            svg_path = str(svg_path)
-            # self.message_object.setStyleSheet("background-color: white; padding: 20px;")
-            self.message_object.load_svg(svg_path)
-            # self.setSvg_Size(svg_path)
 
+        if mobject is not None:
+            if os.path.exists(mobject):
+                self.message_object.load_svg(mobject)
         if msg is not None:
             self.message_label.setText(msg)
         if voice_id is not None:
             self.setWindowTitle("Sound ID : {}".format(voice_id))
-            # self.speech_script_label.setText("Sound ID : {}".format(voice_id))
-        if show:
-            self.show()
+        # if show:
+        #     self.show()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     audiorecoder = PyAudio_()
     recorder = Recorder(audiorecoder)
-    recorder.record(path=recorder.get_audio_basename() + ".wav", msg="Start Recording")
+    # recorder._recorder(path=get_audio_basename() + ".wav", msg="Start Recording")
     recorder.show()
     sys.exit(app.exec())

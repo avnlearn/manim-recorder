@@ -1,8 +1,14 @@
 from pathlib import Path
+import sys
 from manim_recorder.recorder.base import AudioService
-
-# import multiprocessing
 from manim_recorder.recorder.gui.__gui__ import Recorder, QApplication, sys
+from manim_recorder.helper import get_audio_basename
+from PySide6.QtCore import Signal, QObject, QEventLoop
+
+
+class Communicate(QObject):
+    recorder_data = Signal(str, str, int, str)  # Ensure this matches the emitted signal
+    accept = Signal(str)
 
 
 class RecorderService(AudioService):
@@ -15,11 +21,13 @@ class RecorderService(AudioService):
         """Initialize the Audio service.
         Args:
         """
-        self.app = QApplication(sys.argv)
-        self.recorder = Recorder()
-        self.recorder.show()
         AudioService.__init__(self, **kwargs)
-        # self.start_application()
+        self.app = QApplication(sys.argv)
+        self.communicator = Communicate()
+        self.communicator.accept.connect(self.recorder_complated)
+        self.recorder = Recorder(communicator=self.communicator)
+        self.recorder.show()
+        self.loop = QEventLoop()
 
     def generate_from_text(
         self,
@@ -43,13 +51,24 @@ class RecorderService(AudioService):
         if cached_result is not None:
             return cached_result
 
-        audio_path = self.get_audio_basename() + ".wav" if path is None else path
-        self.recorder.record(
-            str(Path(cache_dir) / audio_path), text, voice_id, mobject, **kwargs
+        audio_path = get_audio_basename() + ".wav" if path is None else path
+        
+        self.communicator.recorder_data.emit(
+            str(Path(cache_dir) / audio_path), text, voice_id, str(mobject)
         )
-        self.app.exec()
+        self.loop = QEventLoop()
+        self.communicator.accept.connect(self.loop.quit)
+        self.loop.exec()
+
         json_dict = {"input_data": input_data, "original_audio": audio_path}
 
         return json_dict
 
-    
+    def recorder_complated(self, message):
+        print(message)
+
+    def app_exec(self):
+        self.recorder.close()
+        self.loop.exit()
+        sys.exit(self.app.exec)
+        QApplication.exit()

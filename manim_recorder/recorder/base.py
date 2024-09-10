@@ -17,12 +17,7 @@ from manim_recorder.helper import append_to_json_file
 class AudioService(ABC):
     """Abstract base class for a speech service."""
 
-    def __init__(
-        self,
-        global_speed: float = 1.00,
-        cache_dir: Path = None,
-        **kwargs
-    ):
+    def __init__(self, global_speed: float = 1.00, cache_dir: Path = None, **kwargs):
         """
         Args:
             global_speed (float, optional): The speed at which to play the audio.
@@ -39,8 +34,7 @@ class AudioService(ABC):
             self.cache_dir = cache_dir
             self.default_cache_dir = False
         else:
-            self.cache_dir = Path(config.media_dir) / \
-                DEFAULT_VOICEOVER_CACHE_DIR
+            self.cache_dir = Path(config.media_dir) / DEFAULT_VOICEOVER_CACHE_DIR
             self.default_cache_dir = True
         if cache_dir_delete:
             if os.path.exists(self.cache_dir):
@@ -56,10 +50,9 @@ class AudioService(ABC):
 
     def _wrap_generate_from_text(self, text: str, path: str = None, **kwargs) -> dict:
         # Replace newlines with lines, reduce multiple consecutive spaces to single
-        
+
         text = " ".join(text.split())
-        dict_ = self.generate_from_text(
-            text, cache_dir=None, path=path, **kwargs)
+        dict_ = self.generate_from_text(text, cache_dir=None, path=path, **kwargs)
 
         original_audio = dict_["original_audio"]
 
@@ -80,14 +73,12 @@ class AudioService(ABC):
             dict_["final_audio"] = dict_["original_audio"]
 
         append_to_json_file(
-            Path(self.cache_dir) / DEFAULT_VOICEOVER_CACHE_JSON_FILENAME, dict_, **kwargs
+            Path(self.cache_dir) / DEFAULT_VOICEOVER_CACHE_JSON_FILENAME,
+            dict_,
+            **kwargs
         )
 
         return dict_
-
-    def get_audio_basename(self) -> str:
-        now = datetime.datetime.now()
-        return "Voice_{}".format(now.strftime('%d%m%Y_%H%M%S'))
 
     @abstractmethod
     def generate_from_text(
@@ -106,8 +97,7 @@ class AudioService(ABC):
         raise NotImplementedError
 
     def get_cached_result(self, input_data, cache_dir, voice_id: int = -1, **kwargs):
-        json_path = os.path.join(
-            cache_dir, DEFAULT_VOICEOVER_CACHE_JSON_FILENAME)
+        json_path = os.path.join(cache_dir, DEFAULT_VOICEOVER_CACHE_JSON_FILENAME)
 
         if os.path.exists(json_path):
             json_data = json.load(open(json_path, "r"))

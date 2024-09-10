@@ -3,11 +3,13 @@
 
 import re
 import os
+import sys
 from pathlib import Path
 from math import ceil
 from contextlib import contextmanager
 from typing import Optional, Generator
-from manim import Scene, config, Mobject
+from manim import Scene, config, Mobject, logger
+from manim.utils.file_ops import open_media_file
 from manim_recorder.recorder.base import AudioService
 from manim_recorder.tracker import SoundTracker
 from manim_recorder.multimedia import chunks
@@ -67,18 +69,15 @@ class RecorderScene(Scene):
             SoundTracker: The tracker object for the sound.
         """
         if not hasattr(self, "audio_service"):
-            raise Exception(
-                "You need to call init_sound() before adding a sound.")
+            raise Exception("You need to call init_sound() before adding a sound.")
 
         dict_ = self.audio_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs
         )
-        tracker = SoundTracker(
-            self, dict_, self.audio_service.cache_dir, self.voice_id)
+        tracker = SoundTracker(self, dict_, self.audio_service.cache_dir, self.voice_id)
 
-        audio_file_path = str(
-            Path(self.audio_service.cache_dir) / dict_["final_audio"])
-            
+        audio_file_path = str(Path(self.audio_service.cache_dir) / dict_["final_audio"])
+
         if os.path.exists(audio_file_path):
             self.renderer.file_writer.add_sound(
                 str(Path(self.audio_service.cache_dir) / dict_["final_audio"]),
@@ -192,3 +191,47 @@ class RecorderScene(Scene):
             yield self.add_voiceover_text(text, mobject=mobject, **kwargs)
         finally:
             self.wait_for_voiceover()
+
+    def render(self, preview: bool = False):
+        """
+        Renders this Scene.
+
+        Parameters
+        ---------
+        preview
+            If true, opens scene in a file viewer.
+        """
+        self.setup()
+        try:
+            self.construct()
+        except EndSceneEarlyException:
+            pass
+        except RerunSceneException as e:
+            self.remove(*self.mobjects)
+            self.renderer.clear_screen()
+            self.renderer.num_plays = 0
+            return True
+        self.tear_down()
+        # We have to reset these settings in case of multiple renders.
+        self.renderer.scene_finished(self)
+
+        # Show info only if animations are rendered or to get image
+        if (
+            self.renderer.num_plays
+            or config["format"] == "png"
+            or config["save_last_frame"]
+        ):
+            logger.info(
+                f"Rendered {str(self)}\nPlayed {self.renderer.num_plays} animations",
+            )
+
+        # If preview open up the render after rendering.
+        if preview:
+            config["preview"] = True
+
+        if config["preview"] or config["show_in_file_browser"]:
+            open_media_file(self.renderer.file_writer)
+
+        if hasattr(self, "audio_service"):
+            if hasattr(self.audio_service, "app_exec"):
+                self.audio_service.app_exec()
