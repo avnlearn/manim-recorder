@@ -22,6 +22,8 @@ from PySide6.QtWidgets import (
     QStatusBar,
     QSizePolicy,
     QProgressBar,
+    QPlainTextEdit,
+    QTextEdit,
 )
 import numpy as np
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSize
@@ -101,16 +103,21 @@ class Recorder(QMainWindow):
 
         self.message_object = SVG_Viewer(svg_file=SVG_Icon["MIC"])
 
-        message_layout.addWidget(
-            self.message_object, alignment=Qt.AlignCenter, stretch=1
-        )
+        message_layout.addWidget(self.message_object, stretch=1)
 
         # Message Display
-        self.message_label = create_label(
-            "Message", "color:orange; font-size: 15px", align="c", wordwrap=True
-        )
-        message_layout.addStretch(1)
-        message_layout.addWidget(self.message_label)
+        self.message_label = QTextEdit(self)
+        # self.message_label.setText("Message")
+        self.message_label.setText("Message")
+        self.setStyleSheet("color:orange; font-size: 15px;")
+        # self.message_label = create_label(
+        #     "Message", "color:orange; font-size: 15px;", align="c", wordwrap=True
+        # )
+        # self.message_label.set
+        # message_layout.addStretch(1)
+
+        message_layout.addWidget(self.message_label, stretch=1)
+
         layout.addLayout(message_layout)
 
         # Waveform Chart
@@ -138,27 +145,27 @@ class Recorder(QMainWindow):
             func=self.__pause,
             stylesheet="modern",
             disable=True,
-            toolTip="Pause",
+            toolTip="Pause (<b>t</b>)",
         )
         self.play_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaPlay),
             func=self.__play,
             stylesheet="modern",
             disable=True,
-            toolTip="Play",
+            toolTip="Play (<b>p</b>)",
         )
         self.stop_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_MediaStop),
             func=self.__stop,
             stylesheet="modern",
             disable=True,
-            toolTip="Stop",
+            toolTip="Stop (<b>s</b>)",
         )
         self.rec_button = Create_Button(
             icon=QIcon(SVG_Icon["MIC"]),
             stylesheet="modern",
             func=self.__rec,
-            toolTip="Recording",
+            toolTip="Recording (<b>r</b>)",
         )
 
         self.save_button = Create_Button(
@@ -166,7 +173,7 @@ class Recorder(QMainWindow):
             stylesheet="modern",
             func=self.save_audio,
             disable=True,
-            toolTip="Save",
+            toolTip="Save (<b>Ctrl + S</b>)",
         )
 
         media_layout.addWidget(self.pause_button)
@@ -217,7 +224,7 @@ class Recorder(QMainWindow):
             stylesheet="modern",
             func=self._next,
             disable=True,
-            toolTip="Accept and Next",
+            toolTip="Accept and Next (<b>a</b>)",
         )
 
         feature_layout.addWidget(self.accept_button)
@@ -409,7 +416,8 @@ class Recorder(QMainWindow):
     def resetUI(self):
         """Resets the user interface to its initial state."""
         self.File_Saved = False
-        self.message_label.reset()  # Clear message label
+        # self.message_label.reset()  # Clear message label
+        self.message_label.setText("Message")
         self.recording_timer_label.reset()  # Reset timer display
         self.progress_bar.setValue(0)  # Reset progress bar
         self.status_bar.clearMessage()  # Clear status bar message

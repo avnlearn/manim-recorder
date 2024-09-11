@@ -13,8 +13,10 @@ class VoiceRecorder(RecorderScene):
         circle = Circle()
         square = Square().shift(2 * RIGHT)
         math = MathTex(r"x = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
-        
-        with self.voiceover(mobject=math) as tracker:
+
+        with self.voiceover(
+            "भारत के दस सबसे अधिक प्रतिभाशाली लेखक यह हमलोग नहीं जानना सकते है कि भुत्तकल(Past) में बहुत सारे लिखका हुए जो प्रतिभाशाली थे और आने वाले भाभिष्य कल (Future) में प्रतिभाशाली लेखक होगे। यह हम कुछ लेखको को देखेगे।, इसलिए लिखेगे"
+        ) as tracker:
             self.play(Write(math), run_time=tracker.duration)
 
         self.play(Unwrite(math))
@@ -23,7 +25,7 @@ class VoiceRecorder(RecorderScene):
             self.play(Write(math), run_time=tracker.duration)
 
         self.play(Unwrite(math))
-        
+
         with self.voiceover(text="This circle is drawn as I speak.") as tracker:
             self.play(Create(circle), run_time=tracker.duration)
         self.say_to_wait()
