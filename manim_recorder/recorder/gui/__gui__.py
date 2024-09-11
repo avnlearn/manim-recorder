@@ -86,7 +86,7 @@ class Recorder(QMainWindow):
     def initUI(self):
         """Initializes the user interface components."""
         self.setWindowTitle("Audio Recorder")
-        self.setGeometry(100, 100, 500, 400)
+        self.setGeometry(100, 100, 600, 400)
         WindowCenter(self, onTop=True)
 
         layout = QVBoxLayout()
@@ -109,6 +109,7 @@ class Recorder(QMainWindow):
         self.message_label = create_label(
             "Message", "color:orange; font-size: 15px", align="c", wordwrap=True
         )
+        message_layout.addStretch(1)
         message_layout.addWidget(self.message_label)
         layout.addLayout(message_layout)
 
@@ -239,6 +240,7 @@ class Recorder(QMainWindow):
                 "p": self.__play,
                 "t": self.__pause,
                 "Ctrl+S": self.save_audio,
+                "a": self._next,
                 "Ctrl+Q": self.close,
             },
         )
@@ -379,8 +381,6 @@ class Recorder(QMainWindow):
                 == QMessageBox.Yes
             ):
                 self.save_audio()
-        if self.communicator:
-            self.communicator.accept.emit(self.recorder_service.__str__())
         self.pause_button.setDisabled(True)
         self.play_button.setDisabled(True)
         self.stop_button.setDisabled(True)
@@ -388,7 +388,10 @@ class Recorder(QMainWindow):
         self.save_button.setDisabled(True)
         self.accept_button.setDisabled(True)
         self.audacity_button.setDisabled(True)
+        logging.info("Audio File : {}".format(self.recorder_service.__str__()))
         self.status_bar.showMessage("Loading ...")
+        if self.communicator:
+            self.communicator.accept.emit(self.recorder_service.__str__())
 
     def save_audio(self):
         """Saves the recorded audio to a file."""

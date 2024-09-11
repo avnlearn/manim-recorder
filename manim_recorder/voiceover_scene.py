@@ -3,7 +3,7 @@
 
 import re
 import os
-import sys
+from typing import override
 from pathlib import Path
 from math import ceil
 from contextlib import contextmanager
@@ -192,6 +192,7 @@ class RecorderScene(Scene):
         finally:
             self.wait_for_voiceover()
 
+    @override
     def render(self, preview: bool = False):
         """
         Renders this Scene.

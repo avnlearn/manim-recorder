@@ -11,3 +11,5 @@ temp
 main.py
 *.bak
 curses/
+output.wav
+out.pdf

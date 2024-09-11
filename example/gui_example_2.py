@@ -2,10 +2,9 @@ from manim import *
 
 from manim_recorder.voiceover_scene import RecorderScene
 from manim_recorder.recorder.gui import RecorderService
-from pathlib import Path
 
 
-class VoiceRecorder(RecorderScene):
+class VoiceRecorder(RecorderScene, MovingCameraScene):
     def construct(self):
         self.set_audio_service(RecorderService(), cache_dir_delete=True)
         # self.set_audio_service(RecorderService())
@@ -13,9 +12,11 @@ class VoiceRecorder(RecorderScene):
         circle = Circle()
         square = Square().shift(2 * RIGHT)
         math = MathTex(r"x = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
-        
+
         with self.voiceover(mobject=math) as tracker:
             self.play(Write(math), run_time=tracker.duration)
+
+        self.play(self.camera.frame.animate.shift(DOWN * 10))
 
         self.play(Unwrite(math))
 
@@ -23,7 +24,7 @@ class VoiceRecorder(RecorderScene):
             self.play(Write(math), run_time=tracker.duration)
 
         self.play(Unwrite(math))
-        
+
         with self.voiceover(text="This circle is drawn as I speak.") as tracker:
             self.play(Create(circle), run_time=tracker.duration)
         self.say_to_wait()

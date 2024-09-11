@@ -45,5 +45,4 @@ class SoundTracker:
         """
         # result= max(self.end_t - self.scene.last_t, 0)
         result = max(self.end_t - self.scene.renderer.time + buff, 0)
-        # print(result)
         return result
