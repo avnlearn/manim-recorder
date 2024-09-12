@@ -14,10 +14,10 @@ class VoiceRecorder(RecorderScene):
         square = Square().shift(2 * RIGHT)
         math = MathTex(r"x = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
 
-        # with self.voiceover(
-        #     "भारत के दस सबसे अधिक प्रतिभाशाली लेखक यह हमलोग नहीं जानना सकते है कि भुत्तकल(Past) में बहुत सारे लिखका हुए जो प्रतिभाशाली थे और आने वाले भाभिष्य कल (Future) में प्रतिभाशाली लेखक होगे। यह हम कुछ लेखको को देखेगे।, इसलिए लिखेगे"
-        # ) as tracker:
-        #     self.play(Write(math), run_time=tracker.duration)
+        with self.voiceover(
+            "भारत के दस सबसे अधिक प्रतिभाशाली लेखक यह हमलोग नहीं जानना सकते है कि भुत्तकल(Past) में बहुत सारे लिखका हुए जो प्रतिभाशाली थे और आने वाले भाभिष्य कल (Future) में प्रतिभाशाली लेखक होगे। यह हम कुछ लेखको को देखेगे।, इसलिए लिखेगे", math
+        ) as tracker:
+            self.play(Write(math), run_time=tracker.duration)
 
         # self.play(Unwrite(math))
 

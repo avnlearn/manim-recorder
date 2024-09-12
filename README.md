@@ -2,11 +2,11 @@
 
 ## GUI (Using PySide6)
 
-![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_001-0.2.3.png?raw=true)
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_001-0.2.5.png?raw=true)
 
-![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_002-0.2.3.png?raw=true)
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_002-0.2.5.png?raw=true)
 
-![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_003-0.2.3.png?raw=true)
+![GUI Recorder 1](https://github.com/avnlearn/manim-recorder/blob/main/assets/GUI%20recording_003-0.2.5.png?raw=true)
 
 ```python
 from manim import *
