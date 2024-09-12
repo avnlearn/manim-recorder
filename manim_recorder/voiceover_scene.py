@@ -146,17 +146,28 @@ class RecorderScene(Scene):
         self,
         text: str | None = None,
         mobject: Mobject | None = None,
-        *args_mobject: [Mobject],
+        *args,
         **kwargs,
     ) -> None:
-        if text is None and len(args_mobject) == 0:
+        if text is None and len(args) == 0:
             text = "Say {}".format(self.voice_id)
 
         with self.voiceover(text=text, mobject=mobject) as tracker:
-            if len(args_mobject):
-                self.play(*args_mobject, run_time=tracker.duration)
+            if len(args):
+                self.play(*args, run_time=tracker.duration)
             else:
                 self.safe_wait(tracker.duration)
+
+    def say_to_play(
+        self,
+        *mobject_args,
+        text: str | None = None,
+        mobject: Mobject | None = None,
+        **kwargs,
+    ):
+
+        with self.voiceover(text=text, mobject=mobject) as tracker:
+            self.play(*mobject_args, run_time=tracker.duration)
 
     def wait_for_voiceover(self) -> None:
         """Waits for the sound to finish."""

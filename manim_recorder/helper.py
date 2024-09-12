@@ -7,6 +7,7 @@ import os
 import textwrap
 import datetime
 import platform  # Added import for platform
+import logging
 from manim import logger, Mobject
 
 
@@ -60,7 +61,6 @@ def mobject_to_text(mobject: Mobject) -> str():
 
 
 def text_and_mobject(text: str, mobject: Mobject, **kwargs) -> tuple():
-
     match [text, mobject]:
         case [None, Mobject()]:
             text = mobject_to_text(mobject)
@@ -68,9 +68,16 @@ def text_and_mobject(text: str, mobject: Mobject, **kwargs) -> tuple():
                 mobject.get_file_path() if hasattr(mobject, "get_file_path") else None
             )
         case [str(), Mobject()]:
-            mobject = (
-                mobject.get_file_path() if hasattr(mobject, "get_file_path") else None
-            )
+            try:
+                mobject = (
+                    mobject.get_file_path()
+                    if hasattr(mobject, "get_file_path")
+                    else None
+                )
+                
+            except AttributeError as e:
+                logging.error("mobject : {}".format(e))
+                mobject = None
         case [None, str()]:
             text = mobject
             mobject = mobject if os.path.exists(mobject) else None
@@ -78,7 +85,7 @@ def text_and_mobject(text: str, mobject: Mobject, **kwargs) -> tuple():
             return text_and_mobject(mobject, text)
         case _:
             return None
-
+    
     return text, mobject
 
 

@@ -14,22 +14,23 @@ class VoiceRecorder(RecorderScene):
         square = Square().shift(2 * RIGHT)
         math = MathTex(r"x = \dfrac{-b \pm \sqrt{b^2 - 4ac}}{2a}")
 
-        with self.voiceover(
-            "भारत के दस सबसे अधिक प्रतिभाशाली लेखक यह हमलोग नहीं जानना सकते है कि भुत्तकल(Past) में बहुत सारे लिखका हुए जो प्रतिभाशाली थे और आने वाले भाभिष्य कल (Future) में प्रतिभाशाली लेखक होगे। यह हम कुछ लेखको को देखेगे।, इसलिए लिखेगे"
-        ) as tracker:
-            self.play(Write(math), run_time=tracker.duration)
+        # with self.voiceover(
+        #     "भारत के दस सबसे अधिक प्रतिभाशाली लेखक यह हमलोग नहीं जानना सकते है कि भुत्तकल(Past) में बहुत सारे लिखका हुए जो प्रतिभाशाली थे और आने वाले भाभिष्य कल (Future) में प्रतिभाशाली लेखक होगे। यह हम कुछ लेखको को देखेगे।, इसलिए लिखेगे"
+        # ) as tracker:
+        #     self.play(Write(math), run_time=tracker.duration)
 
-        self.play(Unwrite(math))
+        # self.play(Unwrite(math))
 
-        with self.voiceover(math) as tracker:
-            self.play(Write(math), run_time=tracker.duration)
+        # with self.voiceover(math) as tracker:
+        #     self.play(Write(math), run_time=tracker.duration)
 
-        self.play(Unwrite(math))
+        # self.play(Unwrite(math))
 
-        self.say_to_wait("This circle is drawn as I speak.", None, Create(circle))
-
-        with self.voiceover(text="This circle is drawn as I speak.") as tracker:
-            self.play(Create(circle), run_time=tracker.duration)
+        # self.say_to_wait("This circle is drawn as I speak.", None, Create(circle))
+        
+        self.say_to_play(Create(circle), text="This circle is drawn as I speak.", mobject=math)
+        # with self.voiceover(text="This circle is drawn as I speak.") as tracker:
+        #     self.play(Create(circle), run_time=tracker.duration)
 
         self.say_to_wait()
         with self.voiceover(text="Let's shift it to the left 2 units.") as tracker:
