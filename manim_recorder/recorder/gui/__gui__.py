@@ -208,6 +208,15 @@ class Recorder(QMainWindow):
         # Additional Features Layout
         feature_layout = QHBoxLayout()
 
+        self.audacity_button = Create_Button(
+            "Trim Silence",
+            lambda: Run_Audacity(self.recorder_service.__str__()),
+            stylesheet="modern",
+            disable=True,
+            toolTip="Audacity Run",
+        )
+        feature_layout.addWidget(self.audacity_button)
+
         # Run Audacity Button
         self.audacity_button = Create_Button(
             "Run Audacity",
@@ -284,20 +293,34 @@ class Recorder(QMainWindow):
         """Updates the waveform plot with the latest audio data."""
         if self.recorder_service.frames:
             # Convert the last chunk of frames to numpy array
-            data = np.frombuffer(self.recorder_service.frames[-1], dtype=np.int16)
-            data = data / 32768.0  # Normalize to [-1, 1]
+            data = None
 
-            # time = np.linspace(
-            #     self.recorder_service.get_recording_duration() - 1,
-            #     self.recorder_service.get_recording_duration(),
-            #     num=len(data),
-            # )
+            if self.recorder_service.is_recording:
+                data = np.frombuffer(self.recorder_service.frames[-1], dtype=np.int16)
+                # time = np.linspace(
+                #     self.recorder_service.get_recording_duration() - 1,
+                #     self.recorder_service.get_recording_duration(),
+                #     num=len(data),
+                # )
+                self.recording_timer_label.setText(
+                    self.recorder_service.get_recording_format_duration()
+                )
+            elif (
+                self.recorder_service.is_playing
+                and self.recorder_service.current_playback_frame_index
+                < len(self.recorder_service)
+            ):
+                data = np.frombuffer(
+                    self.recorder_service.frames[
+                        self.recorder_service.current_playback_frame_index
+                    ],
+                    dtype=np.int16,
+                )
 
-            self.curve.setData(data)
+            if all(data if data is not None else [False]):
+                data = data / 32768.0  # Normalize to [-1, 1]
 
-            self.recording_timer_label.setText(
-                self.recorder_service.get_recording_format_duration()
-            )
+                self.curve.setData(data)
 
     def update_progress_bar(self):
         """Updates the progress bar based on the current playback status."""
@@ -349,6 +372,7 @@ class Recorder(QMainWindow):
             # Start the progress bar timer
             self.progress_timer.start(100)  # Update every 100 ms
             self.progress_bar.setValue(0)
+            self.start_timer()
 
     def __stop(self):
         """Stops the audio recording or playback."""

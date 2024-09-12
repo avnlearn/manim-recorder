@@ -13,12 +13,15 @@ import time
 import logging
 from pathlib import Path
 import sox
+import numpy as np
+import noisereduce as nr
 import pyaudio
 from pydub.utils import mediainfo
 from mutagen.mp3 import MP3
 from pydub import AudioSegment
 from pydub.playback import play
 from manim import logger
+from manim_recorder.helper import get_audio_basename
 
 
 class Multimedia:
@@ -63,7 +66,8 @@ class PyAudio_:
         rate: int = 44100,
         chunk: int = 1024,
         device_index: int = None,
-        file_path: str = "output.wav",
+        file_path: str = get_audio_basename() + ".wav",
+        # noise_suppression_endabled: bool = True,
         **kwargs,
     ):
         """Initialize the audio recorder."""
@@ -72,18 +76,42 @@ class PyAudio_:
         self.rate = rate
         self.chunk = chunk
         self.device_index = device_index
+        self.file_path = file_path
+
+        self.lock = threading.Lock()
+        self.p = pyaudio.PyAudio()
+
         self.frames = []
         self.is_recording = False
         self.is_paused = False
-        self.lock = threading.Lock()
-        self.p = pyaudio.PyAudio()
-        self.file_path = file_path
         self.playback_thread = None
         self.stop_playback_event = threading.Event()
         self.is_playing = False
         self.current_playback_frame_index = 0
         self.playback_paused = False
         self.playback_lock = threading.Lock()
+
+    def __str__(self) -> str:
+        """Return the file path if it exists."""
+        if isinstance(self.file_path, str):
+            if os.path.exists(self.file_path):
+                return self.file_path
+        return "No valid file path set."
+
+    def __len__(self):
+        return len(self.frames)
+
+    def __getitem__(self, key):
+        return self.frames[key]
+
+    def __setitem__(self, key, value):
+        self.frames[key] = value
+
+    def __iter__(self):
+        return iter(self.frames)
+
+    def append(self, value):
+        self.frames.append(value)
 
     def set_device_index(self, device_index) -> None:
         """Set the input device index for recording."""
@@ -125,7 +153,7 @@ class PyAudio_:
 
     def start_recording(self) -> None:
         """Start recording audio."""
-        self.frames = []
+        self.recording_frames = []
         self.is_recording = True
         self.is_paused = False
         self.thread = threading.Thread(target=self._record)
@@ -146,8 +174,12 @@ class PyAudio_:
             while self.is_recording:
                 if not self.is_paused:
                     data = stream.read(self.chunk)
+                    # audio_data = np.frombuffer(data, dtype=np.int16)
+                    # if self.noise_suppression_endabled:
+                    #     audio_data = self.suppress_noise(audio_data)
                     with self.lock:
-                        self.frames.append(data)
+                        self.append(data)
+                        # self.append(audio_data.tobytes())
         except Exception as e:
             logging.error("An error occurred during recording: {}".format(e))
         finally:
@@ -171,13 +203,14 @@ class PyAudio_:
         """Save the recorded audio to a file."""
         with wave.open(self.file_path, "wb") as wf:
             wf.setnchannels(self.channels)
-            wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
+            wf.setsampwidth(self.p.get_sample_size(self.format))
+            # wf.setsampwidth(self.p.get_sample_size(pyaudio.paInt16))
             wf.setframerate(self.rate)
-            wf.writeframes(b"".join(self.frames))
+            wf.writeframes(b"".join(self))
 
     def play_playback(self) -> None:
         """Start playback of the recorded audio."""
-        if not self.frames:
+        if len(self):
             return False
         self.is_playing = True
         self.stop_playback_event.clear()  # Clear the stop event
@@ -192,14 +225,14 @@ class PyAudio_:
         )
         self.current_playback_frame_index = 0  # Initialize current playback frame
         while (
-            self.current_playback_frame_index < len(self.frames)
+            self.current_playback_frame_index < len(self)
             and not self.stop_playback_event.is_set()
         ):
             with self.playback_lock:
                 if self.playback_paused:
                     time.sleep(0.1)
                     continue
-                stream.write(self.frames[self.current_playback_frame_index])
+                stream.write(self[self.current_playback_frame_index])
                 self.current_playback_frame_index += (
                     1  # Increment the current playback frame
                 )
@@ -228,9 +261,9 @@ class PyAudio_:
 
     def get_recording_duration(self) -> float:
         """Return the total recording duration in seconds."""
-        if not self.frames:
+        if len(self):
             return 0.0
-        return len(self.frames) * self.chunk / self.rate
+        return len(self) * self.chunk / self.rate
 
     def get_recording_format_duration(self) -> str:
         """Return the recording duration formatted as HH:MM:SS."""
@@ -240,13 +273,6 @@ class PyAudio_:
     def set_filepath(self, path: str) -> None:
         """Set the file path for saving the recording."""
         self.file_path = str(path)
-
-    def __str__(self) -> str:
-        """Return the file path if it exists."""
-        if isinstance(self.file_path, str):
-            if os.path.exists(self.file_path):
-                return self.file_path
-        return "No valid file path set."
 
 
 def adjust_speed(input_path: str, output_path: str, tempo: float) -> None:
@@ -343,3 +369,25 @@ def trim_silence(
     duration = len(sound)
     trimmed_sound = sound[start_trim : duration - end_trim]
     return trimmed_sound
+
+
+def suppress_noise(audio_data: np.ndarray, rate) -> np.ndarray:
+    return nr.reduce_noise(y=audio_data, sr=rate)
+
+
+def normalize(audio_data: np.ndarray) -> np.ndarray:
+    max_amplitude = np.max(np.abs(audio_data))
+    if max_amplitude > 0:
+        return audio_data / max_amplitude
+    return audio_data
+
+
+def compress(
+    audio_data: np.ndarray, threshold: float = 0.1, ratio: float = 4.0
+) -> np.ndarray:
+    compressed_data = np.where(
+        np.abs(audio_data) > threshold,
+        np.sign(audio_data) * (threshold + (np.abs(audio_data) - threshold) / ratio),
+        audio_data,
+    )
+    return compressed_data

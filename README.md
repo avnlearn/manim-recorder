@@ -24,6 +24,7 @@ class VoiceRecorder(RecorderScene):
 
         circle = Circle()
         square = Square().shift(2 * RIGHT)
+        
         with self.voiceover(text="This circle is drawn as I speak.") as tracker:
             self.play(Create(circle), run_time=tracker.duration)
 
