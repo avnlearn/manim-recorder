@@ -142,11 +142,21 @@ class RecorderScene(Scene):
             )
             current_offset += chunk_duration
 
-    def say_to_wait(self, text: str = None) -> None:
-        with self.voiceover(
-            "Say {} : {}".format(self.voice_id, "" if text is None else text)
-        ) as tracker:
-            self.safe_wait(tracker.duration)
+    def say_to_wait(
+        self,
+        text: str | None = None,
+        mobject: Mobject | None = None,
+        *args_mobject: [Mobject],
+        **kwargs,
+    ) -> None:
+        if text is None and len(args_mobject) == 0:
+            text = "Say {}".format(self.voice_id)
+
+        with self.voiceover(text=text, mobject=mobject) as tracker:
+            if len(args_mobject):
+                self.play(*args_mobject, run_time=tracker.duration)
+            else:
+                self.safe_wait(tracker.duration)
 
     def wait_for_voiceover(self) -> None:
         """Waits for the sound to finish."""
