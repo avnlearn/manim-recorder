@@ -14,7 +14,8 @@ import logging
 from pathlib import Path
 import sox
 import numpy as np
-import noisereduce as nr
+
+# import noisereduce as nr
 import pyaudio
 from pydub.utils import mediainfo
 from mutagen.mp3 import MP3
@@ -109,6 +110,13 @@ class PyAudio_:
 
     def __iter__(self):
         return iter(self.frames)
+
+    def __float__(self):
+        """Return the total recording duration in seconds."""
+        return len(self) * self.chunk / self.rate if len(self) else 0.0
+
+    def __bool__(self):
+        return True if len(self) else False
 
     def append(self, value):
         self.frames.append(value)
@@ -210,7 +218,7 @@ class PyAudio_:
 
     def play_playback(self) -> None:
         """Start playback of the recorded audio."""
-        if len(self):
+        if not len(self):
             return False
         self.is_playing = True
         self.stop_playback_event.clear()  # Clear the stop event
@@ -259,15 +267,9 @@ class PyAudio_:
         """Terminate the PyAudio session."""
         self.p.terminate()
 
-    def get_recording_duration(self) -> float:
-        """Return the total recording duration in seconds."""
-        if len(self):
-            return 0.0
-        return len(self) * self.chunk / self.rate
-
     def get_recording_format_duration(self) -> str:
         """Return the recording duration formatted as HH:MM:SS."""
-        struct_time = time.gmtime(self.get_recording_duration())
+        struct_time = time.gmtime(float(self))
         return time.strftime("%H:%M:%S", struct_time)
 
     def set_filepath(self, path: str) -> None:
@@ -371,8 +373,8 @@ def trim_silence(
     return trimmed_sound
 
 
-def suppress_noise(audio_data: np.ndarray, rate) -> np.ndarray:
-    return nr.reduce_noise(y=audio_data, sr=rate)
+# def suppress_noise(audio_data: np.ndarray, rate) -> np.ndarray:
+#     return nr.reduce_noise(y=audio_data, sr=rate)
 
 
 def normalize(audio_data: np.ndarray) -> np.ndarray:

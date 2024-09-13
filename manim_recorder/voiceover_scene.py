@@ -24,12 +24,14 @@ class RecorderScene(Scene):
     create_subcaption: bool
     create_script: bool
     voice_id: int = -1
+    skip: bool
 
     def set_audio_service(
         self,
         audio_service: AudioService,
         create_subcaption: bool | None = True,
         cache_dir_delete: bool = False,
+        skip: bool = False,
     ) -> None:
         """Sets the Audio service to be used for the sound. This method
         should be called before adding any sound to the scene.
@@ -47,6 +49,7 @@ class RecorderScene(Scene):
         self.audio_service = audio_service
         self.current_tracker = None
         self.create_subcaption = create_subcaption
+        self.skip = skip
 
     def add_voiceover_text(
         self,
@@ -70,6 +73,20 @@ class RecorderScene(Scene):
         """
         if not hasattr(self, "audio_service"):
             raise Exception("You need to call init_sound() before adding a sound.")
+
+        if self.skip:
+            return SoundTracker(
+                self,
+                {
+                    "input_data": {
+                        "id": self.voice_id,
+                        "input_text": text,
+                        "MObject": kwargs.get("mobject"),
+                    }
+                },
+                self.audio_service.cache_dir,
+                self.voice_id,
+            )
 
         dict_ = self.audio_service._wrap_generate_from_text(
             text=text, voice_id=self.voice_id, **kwargs

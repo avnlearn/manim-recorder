@@ -24,10 +24,12 @@ class SoundTracker:
         self.data = data
         self.cache_dir = cache_dir
         self.voice_id = voice_id
-        audio_file_path = Path(cache_dir) / self.data["final_audio"]
+
         self.duration = 1
-        if audio_file_path.exists():
-            self.duration = get_duration(Path(cache_dir) / self.data["final_audio"])
+        if self.data.get("final_audio"):
+            audio_file_path = Path(cache_dir) / self.data.get("final_audio")
+            if audio_file_path.exists():
+                self.duration = get_duration(audio_file_path)
         last_t = scene.renderer.time
         if last_t is None:
             last_t = 0

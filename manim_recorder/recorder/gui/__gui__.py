@@ -171,7 +171,7 @@ class Recorder(QMainWindow):
         self.save_button = Create_Button(
             icon=self.style().standardIcon(QStyle.SP_DialogSaveButton),
             stylesheet="modern",
-            func=self.save_audio,
+            func=self._save,
             disable=True,
             toolTip="Save (<b>Ctrl + S</b>)",
         )
@@ -207,15 +207,6 @@ class Recorder(QMainWindow):
 
         # Additional Features Layout
         feature_layout = QHBoxLayout()
-
-        self.audacity_button = Create_Button(
-            "Trim Silence",
-            lambda: Run_Audacity(self.recorder_service.__str__()),
-            stylesheet="modern",
-            disable=True,
-            toolTip="Audacity Run",
-        )
-        feature_layout.addWidget(self.audacity_button)
 
         # Run Audacity Button
         self.audacity_button = Create_Button(
@@ -255,7 +246,7 @@ class Recorder(QMainWindow):
                 "s": self.__stop,
                 "p": self.__play,
                 "t": self.__pause,
-                "Ctrl+S": self.save_audio,
+                "Ctrl+S": self._save,
                 "a": self._next,
                 "Ctrl+Q": self.close,
             },
@@ -291,12 +282,12 @@ class Recorder(QMainWindow):
 
     def update_plot(self):
         """Updates the waveform plot with the latest audio data."""
-        if self.recorder_service.frames:
+        if self.recorder_service:
             # Convert the last chunk of frames to numpy array
             data = None
 
             if self.recorder_service.is_recording:
-                data = np.frombuffer(self.recorder_service.frames[-1], dtype=np.int16)
+                data = np.frombuffer(self.recorder_service[-1], dtype=np.int16)
                 # time = np.linspace(
                 #     self.recorder_service.get_recording_duration() - 1,
                 #     self.recorder_service.get_recording_duration(),
@@ -311,7 +302,7 @@ class Recorder(QMainWindow):
                 < len(self.recorder_service)
             ):
                 data = np.frombuffer(
-                    self.recorder_service.frames[
+                    self.recorder_service[
                         self.recorder_service.current_playback_frame_index
                     ],
                     dtype=np.int16,
@@ -328,7 +319,7 @@ class Recorder(QMainWindow):
             # current_duration = (
             #     self.recorder_service.get_recording_duration()
             # )  # Total duration in seconds
-            total_frames = len(self.recorder_service.frames)  # Total frames recorded
+            total_frames = len(self.recorder_service)  # Total frames recorded
             if total_frames > 0:
                 current_frame = (
                     self.recorder_service.current_playback_frame_index
@@ -387,18 +378,21 @@ class Recorder(QMainWindow):
         self.play_button.setDisabled(False)
         self.rec_button.setDisabled(False)
         self.save_button.setDisabled(False)
+        self.audacity_button.setDisabled(True)
         self.accept_button.setDisabled(False)
 
     def __rec(self):
         """Starts audio recording."""
         if not self.recorder_service.is_recording:
             self.status_bar.showMessage("Status : Recording ...")
-            self.rec_button.setDisabled(True)
-            self.play_button.setDisabled(True)
-            self.save_button.setDisabled(True)
-            self.pause_button.setDisabled(False)
-            self.stop_button.setDisabled(False)
 
+            self.pause_button.setDisabled(False)
+            self.play_button.setDisabled(True)
+            self.stop_button.setDisabled(False)
+            self.rec_button.setDisabled(True)
+            self.save_button.setDisabled(True)
+            self.audacity_button.setDisabled(True)
+            self.accept_button.setDisabled(True)
             self.recorder_service.set_device_index(self.device_index)
             self.recorder_service.set_channels(self.device_index)
             self.recorder_service.start_recording()
@@ -411,7 +405,7 @@ class Recorder(QMainWindow):
                 show_message("Confirmation", "Do you want to save the audio file?")
                 == QMessageBox.Yes
             ):
-                self.save_audio()
+                self._save()
         self.pause_button.setDisabled(True)
         self.play_button.setDisabled(True)
         self.stop_button.setDisabled(True)
@@ -424,13 +418,13 @@ class Recorder(QMainWindow):
         if self.communicator:
             self.communicator.accept.emit(self.recorder_service.__str__())
 
-    def save_audio(self):
+    def _save(self):
         """Saves the recorded audio to a file."""
         if self.recorder_service.is_recording:
             self.recorder_service.stop_recording()
         if self.recorder_service.is_playing:
             self.recorder_service.stop_playback()
-        if self.recorder_service.frames:
+        if self.recorder_service:
             self.recorder_service.save_recording()
             self.File_Saved = True
             self.audacity_button.setDisabled(False)
