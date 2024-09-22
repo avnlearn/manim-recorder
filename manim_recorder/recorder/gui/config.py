@@ -1,6 +1,28 @@
+"""
+This module provides a set of custom widgets and utility functions for a PySide6 application.
+It includes:
+
+1. **create_label**: A custom QLabel with additional styling and alignment options.
+2. **Create_Button**: A custom QPushButton with enhanced functionality and styling.
+3. **ImageDisplay**: A widget for displaying images with zoom functionality and a message box.
+4. **Audio_Waveform**: A widget for displaying audio waveforms using pyqtgraph.
+5. **Audio_Playback_Progress_bar**: A custom progress bar for audio playback.
+
+Utility functions include:
+- `PWD()`: Returns the directory of the current file.
+- `is_dark_mode()`: Checks if the application is in dark mode.
+- `WindowCenter()`: Centers a given window on the screen.
+- `show_message()`: Displays a message box with a title and message.
+- `setup_shortcuts()`: Sets up keyboard shortcuts for the application.
+"""
+
+import sys
 import os
 from typing import overload
 import xml.etree.ElementTree as ET
+from PIL import Image, ImageQt
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtGui import (
     QIcon,
     QPalette,
@@ -26,18 +48,23 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QStatusBar,
     QSizePolicy,
+    QTextEdit,
+    QScrollArea,
+    QSizePolicy,
+    QProgressBar,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QTimer, QSize, QRectF
 from PySide6.QtSvgWidgets import QSvgWidget
 from PySide6.QtSvg import QSvgRenderer
+import pyqtgraph as pg
 
 
-def PWD():
+def PWD() -> str:
     """Returns the directory of the current file."""
     return os.path.dirname(__file__)
 
 
-def is_dark_mode():
+def is_dark_mode() -> bool:
     """Determines if the application is in dark mode based on the window background color.
 
     Returns:
@@ -103,7 +130,14 @@ class create_label(QLabel):
     def set_properties(
         self, text: str, style: tuple, align: str | Qt.AlignmentFlag, wordwrap: bool
     ):
-        """Sets the properties of the label."""
+        """Sets the properties of the label.
+
+        Args:
+            text (str): The text to display on the label.
+            style (tuple): CSS style strings to apply to the label.
+            align (str | Qt.AlignmentFlag): Alignment of the text.
+            wordwrap (bool): Whether to enable word wrapping.
+        """
         self.setText(text)
 
         # Set alignment based on the provided argument
@@ -120,7 +154,9 @@ class create_label(QLabel):
         # Apply styles if provided
         if style:
             style_str = (
-                "; ".join(style).strip() + ";"  # Ensure styles are properly formatted
+                # Ensure styles are properly formatted
+                "; ".join(style).strip()
+                + ";"
             )
             self.setStyleSheet(style_str)
 
@@ -157,6 +193,7 @@ class Create_Button(QPushButton):
             shortcut (str, optional): Keyboard shortcut for the button.
             stylesheet (str, optional): Custom stylesheet for the button.
             disable (bool, optional): Whether to disable the button initially.
+            toolTip (str, optional): Tooltip text for the button.
             **kwargs: Additional keyword arguments for QPushButton.
         """
         super().__init__(text, **kwargs)
@@ -233,7 +270,7 @@ class Create_Button(QPushButton):
         self.setDisabled(self.original_disabled)
 
 
-def WindowCenter(parent, onTop=False):
+def WindowCenter(parent: QWidget, onTop: bool = False) -> None:
     """Centers the given window on the screen.
 
     Args:
@@ -254,13 +291,14 @@ def WindowCenter(parent, onTop=False):
         parent.setWindowFlag(parent.windowFlags() | Qt.WindowStaysOnTopHint)
 
 
-def show_message(title, message, icon=QMessageBox.Information, parent=None):
-    """
-    Displays a message box with the specified title and message.
+def show_message(title: str, message: str, icon=QMessageBox.Information, parent=None) -> int:
+    """Displays a message box with the specified title and message.
 
     Args:
-        title: The title of the message box.
-        message: The message to display.
+        title (str): The title of the message box.
+        message (str): The message to display.
+        icon (QMessageBox.Icon, optional): The icon to display in the message box.
+        parent (QWidget, optional): The parent widget for the message box.
 
     Returns:
         int: The button clicked by the user.
@@ -268,99 +306,200 @@ def show_message(title, message, icon=QMessageBox.Information, parent=None):
     msg_box = QMessageBox(parent)
     msg_box.setWindowTitle(title)
     msg_box.setText(message)
-    msg_box.setIcon(QMessageBox.Information)
+    msg_box.setIcon(icon)
     msg_box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
     return msg_box.exec()  # Show the message box
 
 
-class SVG_Viewer(QSvgWidget):
-    """Custom QSvgWidget class for displaying and interacting with SVG files."""
+def setup_shortcuts(parent: QWidget, keys: dict) -> None:
+    """Sets up keyboard shortcuts for the application.
 
-    def __init__(self, svg_file: str = None, padding: int = 10, parent=None):
-        """Initializes the SVG_Viewer with an optional SVG file and padding.
-
-        Args:
-            svg_file (str, optional): Path to the SVG file to load.
-            padding (int, optional): Padding around the SVG content.
-            parent: The parent widget for the SVG viewer.
-        """
-        super().__init__(parent)
-        self.original_size = None  # Store the original size
-        self.scale_factor = 1.0  # Initial scale factor
-        self.padding = padding  # Padding around the SVG content
-        if svg_file:
-            self.original_svg = svg_file
-        else:
-            self.original_svg = SVG_Icon["MIC"]  # Default icon if no file is provided
-        self.load_svg(self.original_svg)
-
-    def load_svg(self, svg_file):
-        """Loads the specified SVG file into the viewer.
-
-        Args:
-            svg_file (str): Path to the SVG file to load.
-        """
-        if svg_file:
-            self.renderer = QSvgRenderer(svg_file)
-            if not self.renderer.isValid():
-                print("Invalid SVG file.")
-                return
-            self.load(svg_file)
-            self.original_size = self.renderer.defaultSize()
-            self.setFixedSize(self.original_size * self.scale_factor)
-            self.update()  # Update the widget to reflect changes
-
-    def reset(self):
-        """Resets the SVG viewer to its original state."""
-        if self.original_size:
-            self.load_svg(self.original_svg)
-            self.scale_factor = 1.0  # Reset scale factor
-            self.setFixedSize(self.original_size)  # Reset to original size
-            self.update()  # Update the widget to reflect changes
-
-    def wheelEvent(self, event: QWheelEvent):
-        """Handles mouse wheel events for zooming in and out of the SVG.
-
-        Args:
-            event (QWheelEvent): The wheel event containing the scroll direction.
-        """
-        if event.angleDelta().y() > 0:
-            self.scale_factor *= 1.1  # Zoom in
-        else:
-            self.scale_factor /= 1.1  # Zoom out
-
-        # Apply the scaling
-        self.setFixedSize(self.original_size * self.scale_factor)
-        self.update()  # Update the widget to reflect changes
-
-    def resizeEvent(self, event):
-        """Handles resize events to adjust the SVG view accordingly.
-
-        Args:
-            event: The resize event.
-        """
-        super().resizeEvent(event)
-        self.setFixedSize(self.original_size * self.scale_factor)
-
-    def paintEvent(self, event):
-        """Handles paint events to customize the rendering of the SVG.
-
-        Args:
-            event: The paint event.
-        """
-        painter = QPainter(self)
-        painter.fillRect(self.rect(), QColor(255, 255, 255))  # White background
-
-        # Adjust the drawing area for padding
-        svg_rect = self.rect().adjusted(
-            self.padding, self.padding, -self.padding, -self.padding
-        )
-        painter.setClipRect(svg_rect)  # Set the clipping rectangle for the SVG
-
-        super().paintEvent(event)  # Call the base class implementation
-
-
-def setup_shortcuts(parent, keys):
-    """Sets up keyboard shortcuts for the application."""
+    Args:
+        parent (QWidget): The parent widget to which the shortcuts are applied.
+        keys (dict): A dictionary mapping key sequences to functions.
+    """
     for key in keys:
         QShortcut(QKeySequence(key), parent, keys[key])
+
+
+class ImageDisplay(QWidget):
+    """Widget for displaying images with zoom functionality and a message box."""
+
+    def __init__(self, parent=None):
+        """Initializes the ImageDisplay widget.
+
+        Args:
+            parent (QWidget, optional): The parent widget.
+        """
+        super().__init__(parent=parent)
+        self.main_parent = parent
+        # Create a vertical layout
+        self.layout = QVBoxLayout(self)
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFixedSize(parent.size())
+        # Create QLabel for image display
+        self.image_label = QLabel()
+        self.scroll_area.setWidget(self.image_label)
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.layout.addWidget(self.scroll_area)
+
+        # Create QTextEdit for text input
+        self.message_box = QTextEdit()
+        self.message_box.setText("Message")
+        self.message_box.setStyleSheet("color:orange; font-size: 15px;")
+
+        self.layout.addWidget(self.message_box)
+
+        self.scale_factor = 1.0  # To keep track of the zoom level
+        self.load_image(None)
+
+    def pil_to_qimage(self, pil_image: Image.Image) -> QImage:
+        """Convert a Pillow image to a QImage.
+
+        Args:
+            pil_image (Image.Image): The Pillow image to convert.
+
+        Returns:
+            QImage: The converted QImage.
+        """
+        if pil_image.mode != "RGBA":
+            pil_image = pil_image.convert("RGBA")
+        data = pil_image.tobytes("raw", "RGBA")
+        qimage = QImage(data, pil_image.width, pil_image.height, QImage.Format_RGBA8888)
+        return qimage
+
+    def load_image(
+        self,
+        file_name,
+        label_text: str = "Failed to load image.",
+        msg: str = None,
+    ) -> None:
+        """Loads an image from a file or a PIL image and displays it.
+
+        Args:
+            file_name (str | Image.Image): The path to the image file or a PIL image.
+            label_text (str, optional): Text to display if loading fails.
+            msg (str, optional): Message to set in the message box.
+        """
+        pixmap = QPixmap()
+        if isinstance(file_name, Image.Image):
+            file_name = self.pil_to_qimage(file_name)
+            pixmap = QPixmap.fromImage(file_name)
+        elif isinstance(file_name, str):
+            if os.path.exists(file_name):
+                pixmap = QPixmap(file_name)
+            else:
+                label_text = f"{file_name} is not found!"
+        elif file_name is None:
+            label_text = "Say"
+
+        self.set_message_box(msg)
+
+        if pixmap.isNull():
+            self.image_label.setText(label_text)
+        else:
+            self.original_pixmap = pixmap  # Store the original pixmap for scaling
+            self.image_label.setPixmap(
+                pixmap.scaled(
+                    pixmap.size() / 2,
+                )
+            )
+            self.image_label.setText("")  # Clear the text when an image is loaded
+
+    def zoom_in(self) -> None:
+        """Zooms in on the displayed image."""
+        self.scale_factor *= 1.2  # Increase the scale factor
+        self.update_image()
+
+    def zoom_out(self) -> None:
+        """Zooms out of the displayed image."""
+        self.scale_factor /= 1.2  # Decrease the scale factor
+        self.update_image()
+
+    def update_image(self) -> None:
+        """Updates the displayed image based on the current zoom level."""
+        if hasattr(self, "original_pixmap"):
+            scaled_pixmap = self.original_pixmap.scaled(
+                self.original_pixmap.size() * self.scale_factor,
+                Qt.KeepAspectRatio,
+                Qt.SmoothTransformation,
+            )
+            self.image_label.setPixmap(scaled_pixmap)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        """Handles the wheel event for zooming in and out.
+
+        Args:
+            event (QWheelEvent): The wheel event.
+        """
+        # Zoom in or out based on the scroll direction
+        if event.angleDelta().y() > 0:
+            self.zoom_in()
+        else:
+            self.zoom_out()
+        event.ignore()
+
+    def set_message_box(self, text: str | None) -> None:
+        """Set the text in the QTextEdit. Pass None to clear it.
+
+        Args:
+            text (str | None): The text to set in the message box or None to clear it.
+        """
+        
+        if text is None:
+            self.message_box.clear()  # Clear the text edit
+        elif isinstance(text, str):
+            self.message_box.setText(text)  # Set the text to the provided string
+        else:
+            print("Invalid input: text must be a string or None.")
+
+
+class Audio_Waveform(pg.PlotWidget):
+    """Widget for displaying audio waveforms."""
+
+    def __init__(self, parent=None):
+        """Initializes the Audio_Waveform widget.
+
+        Args:
+            parent (QWidget, optional): The parent widget.
+        """
+        super().__init__(parent=parent, background="white")
+        self.setYRange(-1, 1)
+        self.setBackground(QColor(255, 255, 255, 0))  # White with 0% opacity
+        self.getAxis("left").setVisible(False)
+        self.getAxis("bottom").setVisible(False)
+        self.setMenuEnabled(False)
+        self.setMouseTracking(False)
+
+
+class Audio_Playback_Progress_bar(QProgressBar):
+    """Custom progress bar for audio playback."""
+
+    def __init__(self, parent=None):
+        """Initializes the Audio_Playback_Progress_bar.
+
+        Args:
+            parent (QWidget, optional): The parent widget.
+        """
+        super().__init__(parent=parent)
+        self.setAlignment(Qt.AlignCenter)
+        self.setRange(0, 100)
+        self.setTextVisible(False)
+        self.setStyleSheet(
+            """
+            QProgressBar {
+                border: 2px solid #555;
+                border-radius: 5px;
+                height: 0.5em;
+                background-color: #e0e0e0;
+            }
+            QProgressBar::chunk {
+                background-color: #76c7c0;
+                border-radius: 5px;
+            }
+        """
+        )
+
+
+

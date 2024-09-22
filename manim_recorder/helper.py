@@ -7,8 +7,18 @@ import os
 import textwrap
 import datetime
 import platform  # Added import for platform
-import logging
-from manim import logger, Mobject
+
+from manim import (
+    logger,
+    Mobject,
+    Animation,
+    Text,
+    MarkupText,
+    Paragraph,
+    SingleStringMathTex,
+    VGroup,
+    Group,
+)
 
 
 def Check_os():
@@ -45,47 +55,67 @@ def get_audio_basename() -> str:
     return "Voice_{}".format(now.strftime("%d%m%Y_%H%M%S"))
 
 
-def mobject_to_text(mobject: Mobject) -> str():
-    # Tex() or MathTex()
-    if hasattr(mobject, "get_tex_string"):
-        mobject = mobject.get_tex_string()
-    # Text
-    elif hasattr(mobject, "original_text"):
-        mobject = mobject.original_text
-    # Paragraph
-    elif hasattr(mobject, "lines_text"):
-        mobject = mobject.lines_text.original_text
-    else:
-        mobject = str(mobject)
-    return mobject
+def mobject_to_text(vmobject: Mobject) -> str():
+    if isinstance(vmobject, Animation):
+        return mobject_to_text(animation_to_mobject(vmobject))
+
+    match vmobject:
+        case SingleStringMathTex():
+            return vmobject.get_tex_string()
+        case MarkupText() | Text():
+            return vmobject.original_text
+        case Paragraph():
+            return mobject_to_text(vmobject.lines_text)
+        case VGroup() | Group():
+            m_str = []
+            for m in vmobject:
+                m = mobject_to_text(m)
+                if m:
+                    m_str.append(m)
+            return "\n".join(m_str)
+        case _:
+            return str(vmobject)
+
+
+def mobject_to_image(vmobject: Mobject, path=None) -> str():
+    if isinstance(vmobject, Animation):
+        vmobject = animation_to_mobject(vmobject)
+    try:
+        # save_image
+        # get_file_path
+        # get_image
+        return vmobject.get_image()
+    except Exception as e:
+        logger.error("animation object is not supported : {}".format(e))
+
+
+def animation_to_mobject(vmobject):
+    try:
+        return vmobject.get_all_mobjects()[0]
+    except Exception as e:
+
+        logger.error("animation object is not supported : {}".format(e))
 
 
 def text_and_mobject(text: str, mobject: Mobject, **kwargs) -> tuple():
     match [text, mobject]:
-        case [None, Mobject()]:
+        case [None, Mobject() | Animation()]:
             text = mobject_to_text(mobject)
-            mobject = (
-                mobject.get_file_path() if hasattr(mobject, "get_file_path") else None
-            )
-        case [str(), Mobject()]:
-            try:
-                mobject = (
-                    mobject.get_file_path()
-                    if hasattr(mobject, "get_file_path")
-                    else None
-                )
-                
-            except AttributeError as e:
-                logging.error("mobject : {}".format(e))
-                mobject = None
+            mobject = mobject_to_image(mobject)
+        case [str(), Mobject() | Animation()]:
+            mobject = mobject_to_image(mobject)
         case [None, str()]:
             text = mobject
             mobject = mobject if os.path.exists(mobject) else None
-        case [Mobject(), None] | [Mobject(), str()] | [str(), None]:
+        case (
+            [Mobject() | Animation(), None]
+            | [Mobject() | Animation(), str()]
+            | [str(), None]
+        ):
             return text_and_mobject(mobject, text)
         case _:
-            return None
-    
+            return None, None
+
     return text, mobject
 
 

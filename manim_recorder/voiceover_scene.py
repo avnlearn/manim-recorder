@@ -1,4 +1,8 @@
 """
+RecorderScene Module
+
+This module defines the RecorderScene class, which extends the Scene class from the Manim library.
+It provides functionality to add sound and voiceovers to scenes, along with managing subcaptions.
 """
 
 import re
@@ -9,6 +13,7 @@ from math import ceil
 from contextlib import contextmanager
 from typing import Optional, Generator
 from manim import Scene, config, Mobject, logger
+from manim.utils.exceptions import RerunSceneException, EndSceneEarlyException
 from manim.utils.file_ops import open_media_file
 from manim_recorder.recorder.base import AudioService
 from manim_recorder.tracker import SoundTracker
@@ -29,7 +34,7 @@ class RecorderScene(Scene):
     def set_audio_service(
         self,
         audio_service: AudioService,
-        create_subcaption: bool | None = True,
+        create_subcaption: Optional[bool] = True,
         cache_dir_delete: bool = False,
         skip: bool = False,
     ) -> None:
@@ -38,7 +43,9 @@ class RecorderScene(Scene):
 
         Args:
             audio_service (AudioService): The audio service to be used.
-            create_subcaption (bool, optional): Whether to create subcaptions for the scene. Defaults to True.
+            create_subcaption (Optional[bool], optional): Whether to create subcaptions for the scene. Defaults to True.
+            cache_dir_delete (bool, optional): Whether to delete the cache directory. Defaults to False.
+            skip (bool, optional): Whether to skip audio processing. Defaults to False.
         """
         if hasattr(audio_service, "default_cache_dir"):
             if audio_service.default_cache_dir:
@@ -57,7 +64,7 @@ class RecorderScene(Scene):
         subcaption: Optional[str] = None,
         max_subcaption_len: int = 70,
         subcaption_buff: float = 0.1,
-        gain_to_background: float | None = None,
+        gain_to_background: Optional[float] = None,
         **kwargs,
     ) -> SoundTracker:
         """Adds sound to the scene.
@@ -65,8 +72,9 @@ class RecorderScene(Scene):
         Args:
             text (str): The text to be spoken.
             subcaption (Optional[str], optional): Alternative subcaption text. If not specified, `text` is chosen as the subcaption. Defaults to None.
-            max_subcaption_len (int, optional): Maximum number of characters for a subcaption. Subcaptions that are longer are split into chunks that are smaller than `max_subcaption_len`. Defaults to 70.
+            max_subcaption_len (int, optional): Maximum number of characters for a subcaption. Defaults to 70.
             subcaption_buff (float, optional): The duration between split subcaption chunks in seconds. Defaults to 0.1.
+            gain_to_background (Optional[float], optional): Gain adjustment for background sound. Defaults to None.
 
         Returns:
             SoundTracker: The tracker object for the sound.
@@ -77,13 +85,7 @@ class RecorderScene(Scene):
         if self.skip:
             return SoundTracker(
                 self,
-                {
-                    "input_data": {
-                        "id": self.voice_id,
-                        "input_text": text,
-                        "MObject": kwargs.get("mobject"),
-                    }
-                },
+                {"input_data": {"id": self.voice_id, "input_text": text}},
                 self.audio_service.cache_dir,
                 self.voice_id,
             )
@@ -129,7 +131,7 @@ class RecorderScene(Scene):
         Args:
             subcaption (str): The subcaption text.
             duration (float): The duration of the subcaption in seconds.
-            max_subcaption_len (int, optional): Maximum number of characters for a subcaption. Subcaptions that are longer are split into chunks that are smaller than `max_subcaption_len`. Defaults to 70.
+            max_subcaption_len (int, optional): Maximum number of characters for a subcaption. Defaults to 70.
             subcaption_buff (float, optional): The duration between split subcaption chunks in seconds. Defaults to 0.1.
         """
         subcaption = " ".join(subcaption.split())
@@ -161,11 +163,19 @@ class RecorderScene(Scene):
 
     def say_to_wait(
         self,
-        text: str | None = None,
-        mobject: Mobject | None = None,
+        text: Optional[str] = None,
+        mobject: Optional[Mobject] = None,
         *args,
         **kwargs,
     ) -> None:
+        """Plays the voiceover and waits for it to finish.
+
+        Args:
+            text (Optional[str], optional): The text to be spoken. Defaults to None.
+            mobject (Optional[Mobject], optional): The Mobject to be spoken. Defaults to None.
+            *args: Additional arguments for the play method.
+            **kwargs: Additional keyword arguments for the voiceover method.
+        """
         if text is None and len(args) == 0:
             text = "Say {}".format(self.voice_id)
 
@@ -178,13 +188,32 @@ class RecorderScene(Scene):
     def say_to_play(
         self,
         *mobject_args,
-        text: str | None = None,
-        mobject: Mobject | None = None,
+        text: Optional[str] = None,
+        mobject: Optional[Mobject] = None,
         **kwargs,
-    ):
+    ) -> None:
+        """Plays the specified mobjects and adds a voiceover.
 
+        Args:
+            *mobject_args: Mobjects to be played.
+            text (Optional[str], optional): The text to be spoken. Defaults to None.
+            mobject (Optional[Mobject], optional): The Mobject to be spoken. Defaults to None.
+            **kwargs: Additional keyword arguments for the voiceover method.
+        """
+        if text is None:
+            text = "Say {}".format(self.voice_id)
         with self.voiceover(text=text, mobject=mobject) as tracker:
             self.play(*mobject_args, run_time=tracker.duration)
+
+    def say_to_image_play(self, vmobject: Mobject, text: Optional[str] = None) -> None:
+        """Plays the specified image mobject and adds a voiceover.
+
+        Args:
+            vmobject (Mobject): The Mobject to be played.
+            text (Optional[str], optional): The text to be spoken. Defaults to None.
+        """
+        with self.voiceover(text=None, mobject=vmobject) as tracker:
+            self.play(vmobject, run_time=tracker.duration)
 
     def wait_for_voiceover(self) -> None:
         """Waits for the sound to finish."""
@@ -206,13 +235,14 @@ class RecorderScene(Scene):
 
     @contextmanager
     def voiceover(
-        self, text: str | None = None, mobject: Mobject | None = None, **kwargs
+        self, text: Optional[str] = None, mobject: Optional[Mobject] = None, **kwargs
     ) -> Generator[SoundTracker, None, None]:
         """The main function to be used for adding sound to a scene.
 
         Args:
-            text (str, optional): The text to be spoken. Defaults to None.
-            mobject (str, optional) : The Mobject to be spoken. Default to None
+            text (Optional[str], optional): The text to be spoken. Defaults to None.
+            mobject (Optional[Mobject], optional): The Mobject to be spoken. Defaults to None.
+
         Yields:
             Generator[SoundTracker, None, None]: The sound tracker object.
         """
@@ -222,6 +252,7 @@ class RecorderScene(Scene):
             )
         else:
             text, mobject = text_and_mobject(text, mobject)
+            
 
         try:
             # Increment voice_id after adding a new sound
@@ -231,14 +262,11 @@ class RecorderScene(Scene):
             self.wait_for_voiceover()
 
     @override
-    def render(self, preview: bool = False):
-        """
-        Renders this Scene.
+    def render(self, preview: bool = False) -> None:
+        """Renders this Scene.
 
-        Parameters
-        ---------
-        preview
-            If true, opens scene in a file viewer.
+        Args:
+            preview (bool, optional): If true, opens scene in a file viewer. Defaults to False.
         """
         self.setup()
         try:

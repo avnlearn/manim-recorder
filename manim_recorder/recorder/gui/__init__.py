@@ -1,14 +1,13 @@
 from pathlib import Path
 import sys
-import logging
 from manim_recorder.recorder.base import AudioService
 from manim_recorder.recorder.gui.__gui__ import Recorder, QApplication, sys
-from manim_recorder.helper import get_audio_basename
+from manim_recorder.helper import get_audio_basename, logger
 from PySide6.QtCore import Signal, QObject, QEventLoop
 
 
 class Communicate(QObject):
-    recorder_data = Signal(str, str, int, str)  # Ensure this matches the emitted signal
+    recorder_data = Signal(str, str, int, object)  # Ensure this matches the emitted signal
     accept = Signal(str)
 
 
@@ -43,7 +42,7 @@ class RecorderService(AudioService):
 
         if cache_dir is None:
             cache_dir = self.cache_dir
-
+        
         input_data = {"id": voice_id, "input_text": text, "MObject": str(mobject)}
         cached_result = self.get_cached_result(
             input_data, cache_dir, voice_id=voice_id, **kwargs
@@ -58,7 +57,7 @@ class RecorderService(AudioService):
         audio_path = get_audio_basename() + ".wav" if path is None else path
 
         self.communicator.recorder_data.emit(
-            str(Path(cache_dir) / audio_path), text, voice_id, str(mobject)
+            str(Path(cache_dir) / audio_path), text, voice_id, mobject
         )
 
         self.loop = QEventLoop()
@@ -70,7 +69,7 @@ class RecorderService(AudioService):
         return json_dict
 
     def recorder_complated(self, message):
-        logging.info(f"Save Audio File : {message}")
+        logger.info(f"Save Audio File : {message}")
 
     def app_exec(self):
         self.recorder.close()

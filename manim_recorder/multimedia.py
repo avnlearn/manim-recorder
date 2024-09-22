@@ -10,7 +10,6 @@ import threading
 import wave
 import subprocess
 import time
-import logging
 from pathlib import Path
 import sox
 import numpy as np
@@ -128,7 +127,8 @@ class PyAudio_:
             self.device_index = device_index
             return True
         except Exception as e:
-            logging.error("Invalid device index. Please try again. {}".format(e))
+
+            logger.error("Invalid device index. Please try again. {}".format(e))
             return False
 
     def set_channels(self, channels: int = None) -> None:
@@ -141,7 +141,7 @@ class PyAudio_:
             ).get("maxInputChannels")
             return True
         except Exception as e:
-            logging.error("Invalid device index. Please try again. {}".format(e))
+            logger.error("Invalid device index. Please try again. {}".format(e))
             return False
 
     def get_device_count(self) -> int:
@@ -189,7 +189,7 @@ class PyAudio_:
                         self.append(data)
                         # self.append(audio_data.tobytes())
         except Exception as e:
-            logging.error("An error occurred during recording: {}".format(e))
+            logger.error("An error occurred during recording: {}".format(e))
         finally:
             stream.stop_stream()
             stream.close()
